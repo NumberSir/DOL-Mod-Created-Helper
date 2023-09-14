@@ -18,6 +18,9 @@ class ModIntepreted:
         self._file_source_passages: dict[str, list] = {}  # 方便替换，整合每个文件中的 passage
         self._file_mods_passages: dict[str, dict] = {}  # 方便替换，整合每个文件中的 passage
 
+        self._boot_json: dict[str, dict[str, list]] = {}  # 按作者分模组信息
+        self.pre_process()
+
     """ 运行前检查 """
     def pre_process(self):
         """运行前检查"""
@@ -47,7 +50,7 @@ class ModIntepreted:
                 with open(Path(root) / file, "r", encoding="utf-8") as fp:
                     lines = fp.readlines()
 
-                relative_file_name = str(Path(root) / file).split("game\\")[1]
+                relative_file_name = str(Path(root) / file).split("game\\")[1].replace("\\", "/")
                 self._file_source_passages[relative_file_name] = []
 
                 for idx, line in enumerate(lines):
@@ -95,19 +98,38 @@ class ModIntepreted:
         """检查一下模组文件夹内容"""
         self._validate_folder_structure()
 
-    @staticmethod
-    def _validate_folder_structure():
+    def _validate_folder_structure(self):
         """检查文件夹该有的和不该有的"""
         for author in os.listdir(DIR_MODS_ROOT):
+
             needed_flag = False
+            info_flag = False
             extra_flag = False
             for dir_name in os.listdir(DIR_MODS_ROOT / author):
                 if dir_name in {"game", "img", "modules"}:
                     needed_flag = True
                     continue
+                elif dir_name == "info.json":
+                    info_flag = True
+                    with open(DIR_MODS_ROOT / author / "info.json", "r", encoding="utf-8") as fp:
+                        data = json.load(fp)
+                    self._boot_json[author] = {
+                        "name": data.get("name", author),
+                        "version": data.get("version", "0.0.0"),
+                        "styleFileList": [],
+                        "scriptFileList": [],
+                        "tweeFileList": [],
+                        "imgFileList": [],
+                        "imgFileReplaceList": [],
+                        "addstionFile": []
+                    }
+                    continue
                 extra_flag = True
             if not needed_flag:
                 logger.warning(f"{author} 目录下缺少必要文件夹 img, game, module 中的一个或多个！")
+                raise
+            if not info_flag:
+                logger.warning(f"{author} 目录下缺少必需的 info.json 文件！")
                 raise
             if extra_flag:
                 logger.warning(f"{author} 目录下除了必要文件夹 img, game, module 外还有其他文件！")
@@ -132,7 +154,7 @@ class ModIntepreted:
                     if not file.endswith(".twee"):
                         continue
 
-                    relative_file_name = str(Path(root) / file).split("game\\")[1]
+                    relative_file_name = str(Path(root) / file).split("game\\")[1].replace("\\", "/")
                     self._file_mods_passages[author][relative_file_name] = []
                     if (DIR_SOURCE_REPO / "game" / relative_file_name).exists():
                         file_exists = True
@@ -197,77 +219,142 @@ class ModIntepreted:
         """处理模组的所有段落。重复的删除原文后拼接，新建的复制粘贴"""
         for author, authordata in self._file_mods_passages.items():
             for filename, passagedatas in authordata.items():
-                os.makedirs((DIR_RESULTS / author / "game" / filename).parent, exist_ok=True)
-                for passagedata in passagedatas:
-                    if passagedata["file_exists"]:  # 要删原文
-                        with open(DIR_SOURCE_REPO / "game" / filename, "r", encoding="utf-8") as fp:
-                            lines = fp.readlines()
-                        lines_copy = lines.copy()
+                # os.makedirs((DIR_RESULTS / author / "game" / filename).parent, exist_ok=True)
+                with open(DIR_MODS_ROOT / author / "game" / filename, "r", encoding="utf-8") as fp:
+                    lines = fp.readlines()
 
-                        delete_flag = False
-                        for source_passagedata in self._file_source_passages[filename]:
-                            if source_passagedata["passage"] == passagedata["passage"]:  # 要删的段落:
-                                for idx, line in enumerate(lines):
-                                    if idx == source_passagedata["start_line"]:
-                                        delete_flag = True
-                                        lines_copy[idx] = None
-                                    elif delete_flag and line.startswith("::"):
-                                        delete_flag = False
-                                    elif delete_flag:
-                                        lines_copy[idx] = None
-                        with open(DIR_MODS_ROOT / author / "game" / filename, "r", encoding="utf-8") as fp:
-                            mod_lines = fp.readlines()
+                for idx, passagedata in enumerate(passagedatas):
+                    if idx != len(passagedatas)-1:  # 不是最后一个
+                        line_passage = lines[passagedata["start_line"]:passagedatas[idx+1]["start_line"]-1]
+                    else:
+                        line_passage = lines[passagedata["start_line"]:]
 
-                        lines_copy.extend(mod_lines)
-                        with open(DIR_RESULTS / author / "game" / filename, "w", encoding="utf-8") as fp:
-                            fp.writelines([_ for _ in lines_copy if _ is not None])
+                    os.makedirs(DIR_RESULTS / author, exist_ok=True)
+                    with open(DIR_RESULTS / author / f'{passagedata["passage"]}.twee', "w", encoding="utf-8") as fp:
+                        fp.writelines(line_passage)
+                    self._boot_json[author]["tweeFileList"].append(f'{passagedata["passage"]}.twee')
 
-                    else:  # 不删原文，直接复制粘贴
-                        shutil.copyfile(
-                            DIR_MODS_ROOT / author / "game" / filename,
-                            DIR_RESULTS / author / "game" / filename
-                        )
+                    # if passagedata["file_exists"]:  # 要删原文
+                    #     with open(DIR_SOURCE_REPO / "game" / filename, "r", encoding="utf-8") as fp:
+                    #         lines = fp.readlines()
+                    #     lines_copy = lines.copy()
+                    #
+                    #     delete_flag = False
+                    #     for source_passagedata in self._file_source_passages[filename]:
+                    #         if source_passagedata["passage"] == passagedata["passage"]:  # 要删的段落:
+                    #             for idx_, line in enumerate(lines):
+                    #                 if idx_ == source_passagedata["start_line"]:
+                    #                     delete_flag = True
+                    #                     lines_copy[idx_] = None
+                    #                 elif delete_flag and line.startswith("::"):
+                    #                     delete_flag = False
+                    #                 elif delete_flag:
+                    #                     lines_copy[idx_] = None
+                    #     with open(DIR_MODS_ROOT / author / "game" / filename, "r", encoding="utf-8") as fp:
+                    #         mod_lines = fp.readlines()
+                    #
+                    #     lines_copy.extend(mod_lines)
+                    #     with open(DIR_RESULTS / author / "game" / filename, "w", encoding="utf-8") as fp:
+                    #         fp.writelines([_ for _ in lines_copy if _ is not None])
+                    # else:  # 不删原文，直接复制粘贴
+                    #     shutil.copyfile(
+                    #         DIR_MODS_ROOT / author / "game" / filename,
+                    #         DIR_RESULTS / author / "game" / filename
+                    #     )
         logger.info("模组的所有段落已处理完成！")
 
     """ 处理其他文件 """
     def process_mods_files(self):
         """处理其他文件"""
         for author in os.listdir(DIR_MODS_ROOT):
+            # 图片
             if (DIR_MODS_ROOT / author / "img").exists():
                 shutil.copytree(
                     DIR_MODS_ROOT / author / "img",
                     DIR_RESULTS / author / "img",
                     dirs_exist_ok=True
                 )
+                for root, dir_list, file_list in os.walk(DIR_RESULTS / author / "img"):
+                    for file in file_list:
+                        relative_file_name = str(Path(root) / file).split("img\\")[1].replace("\\", "/")
+                        if any(file.endswith(suf) for suf in {".jpg", ".png", ".gif", "svg"}):
+                            if (DIR_SOURCE_REPO / "img" / relative_file_name).exists():
+                                self._boot_json[author]["imgFileReplaceList"].append(
+                                    [f"img/{relative_file_name}", f"img/{relative_file_name}"]
+                                )
+                            else:
+                                self._boot_json[author]["imgFileList"].append(f"img/{relative_file_name}")
+                        elif file.endswith(".css"):
+                            self._boot_json[author]["styleFileList"].append(f"img/{relative_file_name}")
+                        elif file.endswith(".js"):
+                            self._boot_json[author]["scriptFileList"].append(f"img/{relative_file_name}")
+                        else:
+                            logger.error(f"这个格式的文件不应该在这里！ - {author} 的 {relative_file_name}")
+                            self._boot_json[author]["addstionFile"].append(f"img/{relative_file_name}")
+
+            # css
             if (DIR_MODS_ROOT / author / "modules").exists():
                 shutil.copytree(
                     DIR_MODS_ROOT / author / "modules",
                     DIR_RESULTS / author / "modules",
                     dirs_exist_ok=True
                 )
+                for root, dir_list, file_list in os.walk(DIR_RESULTS / author / "modules"):
+                    for file in file_list:
+                        relative_file_name = str(Path(root) / file).split("modules\\")[1].replace("\\", "/")
+                        if file.endswith(".css"):
+                            self._boot_json[author]["styleFileList"].append(f"modules/{relative_file_name}")
+                        elif file.endswith(".js"):
+                            self._boot_json[author]["scriptFileList"].append(f"modules/{relative_file_name}")
+                        else:
+                            logger.error(f"这个格式的文件不应该在这里！ - {author} 的 {relative_file_name}")
+                            self._boot_json[author]["addstionFile"].append(f"modules/{relative_file_name}")
+
+            # game
+            if (DIR_MODS_ROOT / author / "game").exists():
+                for root, dir_list, file_list in os.walk(DIR_RESULTS / author / "game"):
+                    for file in file_list:
+                        relative_file_name = str(Path(root) / file).split("game\\")[1].replace("\\", "/")
+                        if file.endswith(".css"):
+                            self._boot_json[author]["styleFileList"].append(f"game/{relative_file_name}")
+                        elif file.endswith(".js"):
+                            self._boot_json[author]["scriptFileList"].append(f"game/{relative_file_name}")
+                        elif file.endswith(".twee"):
+                            continue
+                        else:
+                            logger.error(f"这个格式的文件不应该在这里！ - {author} 的 {relative_file_name}")
+                            self._boot_json[author]["addstionFile"].append(f"game/{relative_file_name}")
+                            raise
+            with open(DIR_RESULTS / author / "boot.json", "w", encoding="utf-8") as fp:
+                json.dump(self._boot_json[author], fp, ensure_ascii=False, indent=2)
         logger.info("图片等其他文件已处理完成！")
 
-    """ 覆盖原游戏文件 """
-    def cover_source_files(self, author: str):
-        if (DIR_RESULTS / author / "game").exists():
-            shutil.copytree(
-                DIR_RESULTS / author / "game",
-                DIR_SOURCE_REPO / "game",
-                dirs_exist_ok=True
-            )
-        if (DIR_RESULTS / author / "img").exists():
-            shutil.copytree(
-                DIR_RESULTS / author / "img",
-                DIR_SOURCE_REPO / "img",
-                dirs_exist_ok=True
-            )
-        if (DIR_RESULTS / author / "modules").exists():
-            shutil.copytree(
-                DIR_RESULTS / author / "modules",
-                DIR_SOURCE_REPO / "modules",
-                dirs_exist_ok=True
-            )
-        logger.info("原游戏文件已覆盖完成！")
+    """ 删掉结果 """
+    def drop_results(self):
+        shutil.rmtree(DIR_RESULTS)
+        os.makedirs(DIR_RESULTS, exist_ok=True)
+
+    # """ 覆盖原游戏文件，已过时 """
+    # def cover_source_files(self, author: str):
+    #     if (DIR_RESULTS / author / "game").exists():
+    #         shutil.copytree(
+    #             DIR_RESULTS / author / "game",
+    #             DIR_SOURCE_REPO / "game",
+    #             dirs_exist_ok=True
+    #         )
+    #     if (DIR_RESULTS / author / "img").exists():
+    #         shutil.copytree(
+    #             DIR_RESULTS / author / "img",
+    #             DIR_SOURCE_REPO / "img",
+    #             dirs_exist_ok=True
+    #         )
+    #     if (DIR_RESULTS / author / "modules").exists():
+    #         shutil.copytree(
+    #             DIR_RESULTS / author / "modules",
+    #             DIR_SOURCE_REPO / "modules",
+    #             dirs_exist_ok=True
+    #         )
+    #     logger.info("原游戏文件已覆盖完成！")
 
 
 __all__ = [
