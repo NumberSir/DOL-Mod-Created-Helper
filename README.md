@@ -23,11 +23,11 @@
 ├── degrees-of-lewdity-master
 ├── mods
 │   └── Number_Sir
-│      ├── img
-│      │   └── <这里放图片，参照原游戏目录>
-│      ├── game
-│      │   └── <这里放 twee 和 js 代码，参照原游戏目录>
-│      └── modules
+│       ├── img
+│       │   └── <这里放图片，参照原游戏目录>
+│       ├── game
+│       │   └── <这里放 twee 和 js 代码，参照原游戏目录>
+│       └── modules
 │          └── css
 │              └── <这里面放 css 文件，参照原游戏目录>
 ├── results
@@ -46,5 +46,22 @@
       * `.twee` 中的段落，请把原游戏中的整段内容(从 `:: PASSAGE_NAME` 开始到下一个 `:: PASSAGE_NAME` 的上一行结束)全部复制出来到你的文件中，然后进行改动
       * `.js`, `.css` 命名、路径请和原游戏文件夹中的完全一致
 
+## 对于自己模组仓库的建议
+如果希望创建自己的模组仓库并上传文件，建议如下：
+1. 建议按照上述注意事项中 `mods` 文件夹结构创建仓库目录结构，即你的仓库目录应该形如：
+```text
+<根目录>
+├── .gitignore
+├── Number_Sir
+│   ├── img
+│   │   └── <这里放图片，参照原游戏目录>
+│   ├── game
+│   │   └── <这里放 twee 和 js 代码，参照原游戏目录>
+│   └── modules
+│      └── css
+│          └── <这里面放 css 文件，参照原游戏目录>
+├── README.md
+...
+```
 
 [dol]: https://gitgud.io/Vrelnir/degrees-of-lewdity
