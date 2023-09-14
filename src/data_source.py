@@ -127,8 +127,8 @@ class ModIntepreted:
             self._all_mods_passages[author] = []
             self._file_mods_passages[author] = {}
             for root, dir_list, file_list in os.walk(DIR_MODS_ROOT / author / "game"):
-                file_exists = False
                 for file in file_list:
+                    file_exists = False
                     if not file.endswith(".twee"):
                         continue
 

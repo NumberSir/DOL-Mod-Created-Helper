@@ -3,4 +3,8 @@ data
 degrees-of-lewdity-master
 mods
 results
+
 *.pyc
+*.7z
+*.zip
+*.rar
