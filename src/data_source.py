@@ -1,6 +1,7 @@
 import json
 import shutil
 from pathlib import Path
+from zipfile import ZipFile as zf, ZIP_DEFLATED
 
 import os
 
@@ -101,7 +102,6 @@ class ModIntepreted:
     def _validate_folder_structure(self):
         """检查文件夹该有的和不该有的"""
         for author in os.listdir(DIR_MODS_ROOT):
-
             needed_flag = False
             info_flag = False
             extra_flag = False
@@ -330,7 +330,15 @@ class ModIntepreted:
                             raise
             with open(DIR_RESULTS / author / "boot.json", "w", encoding="utf-8") as fp:
                 json.dump(self._boot_json[author], fp, ensure_ascii=False, indent=2)
+            self._zip_files(author)
         logger.info("图片等其他文件已处理完成！")
+
+    """ 打包文件 """
+    def _zip_files(self, author: str):
+        with zf(DIR_RESULTS / f"{self._boot_json[author]['name']}.zip", "w", compression=ZIP_DEFLATED, compresslevel=5) as zfp:
+            for root, dir_list, file_list in os.walk(DIR_RESULTS / author):
+                for file in file_list:
+                    zfp.write(filename=Path(root) / file, arcname=(Path(root) / file).relative_to(DIR_RESULTS / author))
 
     def process_mods_passages_rightnow(self):
         """处理模组的所有段落。重复的删除原文后拼接，新建的复制粘贴"""
