@@ -329,6 +329,42 @@ class ModIntepreted:
                 json.dump(self._boot_json[author], fp, ensure_ascii=False, indent=2)
         logger.info("图片等其他文件已处理完成！")
 
+    def process_mods_passages_rightnow(self):
+        """处理模组的所有段落。重复的删除原文后拼接，新建的复制粘贴"""
+        for author, authordata in self._file_mods_passages.items():
+            for filename, passagedatas in authordata.items():
+                os.makedirs((DIR_RESULTS / author / "game" / filename).parent, exist_ok=True)
+                for passagedata in passagedatas:
+                    if passagedata["file_exists"]:  # 要删原文
+                        with open(DIR_SOURCE_REPO / "game" / filename, "r", encoding="utf-8") as fp:
+                            lines = fp.readlines()
+                        lines_copy = lines.copy()
+
+                        delete_flag = False
+                        for source_passagedata in self._file_source_passages[filename]:
+                            if source_passagedata["passage"] == passagedata["passage"]:  # 要删的段落:
+                                for idx, line in enumerate(lines):
+                                    if idx == source_passagedata["start_line"]:
+                                        delete_flag = True
+                                        lines_copy[idx] = None
+                                    elif delete_flag and line.startswith("::"):
+                                        delete_flag = False
+                                    elif delete_flag:
+                                        lines_copy[idx] = None
+                        with open(DIR_MODS_ROOT / author / "game" / filename, "r", encoding="utf-8") as fp:
+                            mod_lines = fp.readlines()
+
+                        lines_copy.extend(mod_lines)
+                        with open(DIR_RESULTS / author / "game" / filename, "w", encoding="utf-8") as fp:
+                            fp.writelines([_ for _ in lines_copy if _ is not None])
+
+                    else:  # 不删原文，直接复制粘贴
+                        shutil.copyfile(
+                            DIR_MODS_ROOT / author / "game" / filename,
+                            DIR_RESULTS / author / "game" / filename
+                        )
+        logger.info("模组的所有段落已处理完成！")
+
     """ 删掉结果 """
     def drop_results(self):
         shutil.rmtree(DIR_RESULTS)

@@ -12,6 +12,7 @@
 4. 编写你自己的模组
 5. 运行 `main.py` (`python -m main`)
 6. 结果会生成在 `results` 文件夹中，接下来请使用 `https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader` 进行下一步操作
+- 注：如果需要频繁改动测试，随改随测，请在 `main.py` 中阅读对应注释操作
 
 ## 编写自己模组的注意事项
 ### 名词解释 ###
