@@ -6,12 +6,12 @@
 ## 食用方法
 注意：由于 `main.py` 中的 `mod.cover_source_files()` 方法会覆盖游戏源文件，因此推荐注释掉此行，自行备份好源文件后手动覆盖游戏源文件。
 
-1. 需要 Python 3.10+
+1. 需要 [Python 3.10+](https://www.python.org/downloads/release/python-31011/)
 2. 在根目录使用 `pip install -r requirements.txt` 安装依赖库
-3. 需要 `https://gitgud.io/Vrelnir/degrees-of-lewdity` 游戏源码，请自行下载，默认将 `degrees-of-lewdity-master` 放在根目录下
+3. 需要 [`https://gitgud.io/Vrelnir/degrees-of-lewdity`](https://gitgud.io/Vrelnir/degrees-of-lewdity) 游戏源码，请自行下载，默认将 `degrees-of-lewdity-master` 放在根目录下
 4. 编写你自己的模组
 5. 运行 `main.py` (`python -m main`)
-6. 结果会生成在 `results` 文件夹中，接下来请使用 `https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader` 进行下一步操作
+6. 结果会生成在 `results` 文件夹中，接下来请使用 [`https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader`](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 进行下一步操作
 - 注：如果需要频繁改动测试，随改随测，请在 `main.py` 中阅读对应注释操作
 
 ## 编写自己模组的注意事项
