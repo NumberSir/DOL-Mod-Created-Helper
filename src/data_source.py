@@ -339,6 +339,7 @@ class ModIntepreted:
             for root, dir_list, file_list in os.walk(DIR_RESULTS / author):
                 for file in file_list:
                     zfp.write(filename=Path(root) / file, arcname=(Path(root) / file).relative_to(DIR_RESULTS / author))
+        logger.info(f"{author} - {self._boot_json[author]['name']} 模组已打包完毕！")
 
     def process_mods_passages_rightnow(self):
         """处理模组的所有段落。重复的删除原文后拼接，新建的复制粘贴"""
