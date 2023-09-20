@@ -116,9 +116,12 @@ class ModIntepreted:
                     self._boot_json[author] = {
                         "name": data.get("name", author),
                         "version": data.get("version", "0.0.0"),
-                        "styleFileList": [],
+                        "scriptFileList_inject_early": [],
+                        "scriptFileList_earlyload": [],
+                        "scriptFileList_preload": [],
                         "scriptFileList": [],
                         "tweeFileList": [],
+                        "styleFileList": [],
                         "imgFileList": [],
                         "imgFileReplaceList": [],
                         "addstionFile": []
