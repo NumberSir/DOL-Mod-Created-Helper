@@ -32,7 +32,8 @@ class ModIntepreted:
     def _is_paths_exists():
         """路径是否存在"""
         if not DIR_SOURCE_REPO.exists():
-            logger.error(f"游戏源码路径 {DIR_SOURCE_REPO} 不存在！请检查后再运行！")
+            logger.error(f"Source code path: {DIR_SOURCE_REPO} - Non-existence! Please re-run after check!")
+            logger.error(f"源码路径 {DIR_SOURCE_REPO} 不存在！请重新检查后运行！")
             raise
 
     @staticmethod
@@ -92,7 +93,8 @@ class ModIntepreted:
             json.dump(self._only_source_passages, fp, ensure_ascii=False, indent=2)
         with open(FILE_FILE_SOURCE_PASSAGES, "w", encoding="utf-8") as fp:
             json.dump(self._file_source_passages, fp, ensure_ascii=False, indent=2)
-        logger.info(f"原游戏段落提取完成，共 {len(self._all_source_passages)} 个！")
+        logger.info(f"Original passages fetched done: {len(self._all_source_passages)} passages!")
+        logger.info(f"原游戏段落获取完毕，共 {len(self._all_source_passages)} 个！")
 
     """ 检查一下模组文件夹内容 """
     def validate(self):
@@ -116,27 +118,27 @@ class ModIntepreted:
                     self._boot_json[author] = {
                         "name": data.get("name", author),
                         "version": data.get("version", "0.0.0"),
-                        "scriptFileList_inject_early": [],
-                        "scriptFileList_earlyload": [],
-                        "scriptFileList_preload": [],
+                        "styleFileList": [],
                         "scriptFileList": [],
                         "tweeFileList": [],
-                        "styleFileList": [],
                         "imgFileList": [],
-                        "imgFileReplaceList": [],
                         "addstionFile": []
                     }
                     continue
                 extra_flag = True
             if not needed_flag:
-                logger.warning(f"{author} 目录下缺少必要文件夹 img, game, module 中的一个或多个！")
+                logger.warning(f"[{author}] missing needy folder: one of or some of 'img', 'game' and 'module'!")
+                logger.warning(f"[{author}] 缺少必要文件夹 'img', 'game', 'module' 中的一个或多个！")
                 raise
             if not info_flag:
-                logger.warning(f"{author} 目录下缺少必需的 info.json 文件！")
+                logger.warning(f"[{author}] missing needy file: info.json 文件！")
+                logger.warning(f"[{author}] 缺少必要的 info.json 文件！")
                 raise
             if extra_flag:
-                logger.warning(f"{author} 目录下除了必要文件夹 img, game, module 外还有其他文件！")
+                logger.warning(f"[{author}] redundant file/folders except 'img', 'game' and 'module'!")
+                logger.warning(f"[{author}] 目录下除了必要文件夹 img, game, module 外还有其他文件夹！")
                 raise
+        logger.info("Mod folder structure checked!")
         logger.info("游戏文件夹检查完毕！")
 
     def _validate_js_syntax(self):
@@ -203,7 +205,8 @@ class ModIntepreted:
             json.dump(self._all_mods_passages, fp, ensure_ascii=False, indent=2)
         with open(FILE_FILE_MODS_PASSAGES, "w", encoding="utf-8") as fp:
             json.dump(self._file_mods_passages, fp, ensure_ascii=False, indent=2)
-        logger.info(f"所有段落提取完成，分别为：{', '.join(f'{author} - {len(lists)}个！' for author, lists in self._all_mods_passages.items())}")
+        logger.info(f"Mod passages fetched done: {', '.join(f'[{author}] - {len(lists)} passages!' for author, lists in self._all_mods_passages.items())}")
+        logger.info(f"所有段落提取完成，分别为：{', '.join(f'[{author}] - {len(lists)} 个！' for author, lists in self._all_mods_passages.items())}")
 
     """ 检查模组段落有无重复、多余的 """
     def validate_passage(self):
@@ -212,9 +215,12 @@ class ModIntepreted:
             for info in passage_infos:
                 if info["file_exists"]:  # 文件存在，检查有没有新建的
                     if info["passage"] not in self._only_source_passages:
-                        logger.error(f"{author} 的 {info['file']} 文件中有多余段落: {info['passage']}！")
+                        logger.error(f"Redundant passage in [{author}] - [{info['file']}]: {info['passage']}!")
+                        logger.error(f"[{author}] 的 [{info['file']}] 文件中有多余段落: [{info['passage']}]！")
                 elif info["passage"] in self._only_source_passages:
-                    logger.error(f"{author} 的 {info['file']} 文件中有重复段落: {info['passage']}！")
+                    logger.error(f"Duplicated passage in [{author}] - [{info['file']}]: {info['passage']}!")
+                    logger.error(f"[{author}] 的 [{info['file']}] 文件中有重复段落: [{info['passage']}]！")
+        logger.info("Redundant & duplicated passages checked!")
         logger.info("重复段落与多余段落检查完毕！")
 
     """ 处理模组的所有段落 """
@@ -264,6 +270,7 @@ class ModIntepreted:
                     #         DIR_MODS_ROOT / author / "game" / filename,
                     #         DIR_RESULTS / author / "game" / filename
                     #     )
+        logger.info("All mod's passages processed done!")
         logger.info("模组的所有段落已处理完成！")
 
     """ 处理其他文件 """
@@ -292,7 +299,8 @@ class ModIntepreted:
                         elif file.endswith(".js"):
                             self._boot_json[author]["scriptFileList"].append(f"img/{relative_file_name}")
                         else:
-                            logger.error(f"这个格式的文件不应该在这里！ - {author} 的 {relative_file_name}")
+                            logger.error(f"Wrong folder! - [{author}] - [{relative_file_name}]")
+                            logger.error(f"这个格式的文件不应该在这里！ - [{author}] 的 [{relative_file_name}]")
                             self._boot_json[author]["addstionFile"].append(f"img/{relative_file_name}")
 
             # css
@@ -310,7 +318,8 @@ class ModIntepreted:
                         elif file.endswith(".js"):
                             self._boot_json[author]["scriptFileList"].append(f"modules/{relative_file_name}")
                         else:
-                            logger.error(f"这个格式的文件不应该在这里！ - {author} 的 {relative_file_name}")
+                            logger.error(f"Wrong folder! - [{author}] - [{relative_file_name}]")
+                            logger.error(f"这个格式的文件不应该在这里！ - [{author}] 的 [{relative_file_name}]")
                             self._boot_json[author]["addstionFile"].append(f"modules/{relative_file_name}")
 
             # game
@@ -325,21 +334,25 @@ class ModIntepreted:
                         elif file.endswith(".twee"):
                             continue
                         else:
-                            logger.error(f"这个格式的文件不应该在这里！ - {author} 的 {relative_file_name}")
+                            logger.error(f"Wrong folder! - [{author}] - [{relative_file_name}]")
+                            logger.error(f"这个格式的文件不应该在这里！ - [{author}] 的 [{relative_file_name}]")
                             self._boot_json[author]["addstionFile"].append(f"game/{relative_file_name}")
                             raise
             with open(DIR_RESULTS / author / "boot.json", "w", encoding="utf-8") as fp:
                 json.dump(self._boot_json[author], fp, ensure_ascii=False, indent=2)
             self._zip_files(author)
+        logger.info("All files processed done!")
         logger.info("图片等其他文件已处理完成！")
 
     """ 打包文件 """
     def _zip_files(self, author: str):
-        with zf(DIR_RESULTS / f"{self._boot_json[author]['name']}.zip", "w", compression=ZIP_DEFLATED, compresslevel=5) as zfp:
+        filename = f"{self._boot_json[author]['name']}.zip"
+        with zf(DIR_RESULTS / filename, "w", compression=ZIP_DEFLATED, compresslevel=5) as zfp:
             for root, dir_list, file_list in os.walk(DIR_RESULTS / author):
                 for file in file_list:
                     zfp.write(filename=Path(root) / file, arcname=(Path(root) / file).relative_to(DIR_RESULTS / author))
-        logger.info(f"{author} - {self._boot_json[author]['name']} 模组已打包完毕！")
+        logger.info(f"[{author}] - [{self._boot_json[author]['name']}] mod's packed done! - {DIR_RESULTS / filename}")
+        logger.info(f"[{author}] - [{self._boot_json[author]['name']}] 模组已打包完毕！ - {DIR_RESULTS / filename}")
 
     def process_mods_passages_rightnow(self):
         """处理模组的所有段落。重复的删除原文后拼接，新建的复制粘贴"""
@@ -375,6 +388,7 @@ class ModIntepreted:
                             DIR_MODS_ROOT / author / "game" / filename,
                             DIR_RESULTS / author / "game" / filename
                         )
+        logger.info("All mod's passages processed done!")
         logger.info("模组的所有段落已处理完成！")
 
     """ 删掉结果 """
