@@ -393,7 +393,7 @@ class ModIntepreted:
 
     """ 删掉结果 """
     def drop_results(self):
-        shutil.rmtree(DIR_RESULTS)
+        shutil.rmtree(DIR_RESULTS, ignore_errors=True)
         os.makedirs(DIR_RESULTS, exist_ok=True)
 
     # """ 覆盖原游戏文件，已过时 """
