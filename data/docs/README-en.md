@@ -1,4 +1,4 @@
-# [Degrees of Lewdity][dol] Mod Interpreted Helper
+# [Degrees of Lewdity][dol] Mod Created Helper
 
 ---
 | [简体中文](../../README.md) | [English](README-en.md) |
