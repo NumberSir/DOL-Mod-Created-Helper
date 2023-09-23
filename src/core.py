@@ -161,12 +161,12 @@ class GameMod:
         for name in os.listdir(DIR_MODS_ROOT):
             for root, dir_list, file_list in os.walk(DIR_MODS_ROOT / name):
                 for file in file_list:
-                    filepath = Path((Path(root) / file).__str__().split(name)[1].lstrip("/").lstrip("\\"))
+                    filepath = Path("/".join((Path(root) / file).__str__().replace("\\", "/").split(f"{name}/")[1:]))
+
                     filepath_str = filepath.__str__().replace("\\", "/")
                     if self._boot_json[name].get("ignoreList") and (
                         # Ignore File
                         filepath in self._boot_json[name]["ignoreList"]
-
                         # Ignore Folder
                         or filepath.parent in self._boot_json[name]["ignoreList"]
                     ) or file == "info.json":
