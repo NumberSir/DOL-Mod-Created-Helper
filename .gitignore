@@ -1,5 +1,5 @@
 .idea
-data
+data/tmp
 degrees-of-lewdity-master
 mods
 results
@@ -9,3 +9,4 @@ scripts
 *.7z
 *.zip
 *.rar
+commits.json

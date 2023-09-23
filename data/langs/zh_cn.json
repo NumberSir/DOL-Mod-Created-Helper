@@ -1,0 +1,38 @@
+{
+  "BaseHelperExceptionMsg": "发生未知错误",
+  "NonExistenceSourceCodeExceptionMsg": "游戏源码文件夹不存在",
+  "MissingInfoJsonExceptionMsg": "缺少必需的 'info.json' 文件",
+
+  "GetLatestCommitStartInfo": "===== 开始获取最新仓库版本... - {url}",
+  "GetLatestCommitMsgInfo": "\t- 最新仓库版本: {latest_commit}\n",
+  "GetLatestCommitFinishInfo": "##### 最新仓库版本获取完成! - {file}\n",
+
+  "DownloadStartInfo": "===== 开始下载游戏源代码... - {url}",
+  "DownloadAlreadyExistInfo": "##### 'dol.zip' 文件已下载!\n",
+  "DownloadErrorInfo": "***** 错误: 无法下载游戏源代码! - 请检查网络连接后重试\n",
+  "DownloadFinishInfo": "##### 游戏源代码下载完成! - {file}\n",
+
+  "ExtractStartInfo": "===== 开始解压游戏源代码...",
+  "ExtractFinishInfo": "##### 游戏源代码解压完成!\n",
+
+  "DropGameDirsStartInfo": "===== 开始删除游戏文件夹...",
+  "DropGameDirsFinishInfo": "##### 游戏文件夹删除完成!\n",
+
+  "BuildBootJsonStartInfo": "===== 开始写入 'boot.json' 文件...",
+  "BuildBootJsonNotFoundInfo": "***** 当前没有任何模组!\n",
+  "BuildBootJsonFinishedInfo": "##### 'boot.json' 文件写入完成!\n",
+
+  "ProcessResultsStartInfo": "===== 开始处理模组...",
+  "ProcessResultsFinishModInfo": "\t- '{name}' 模组处理完成!",
+  "ProcessResultsFinishInfo": "##### 所有模组处理完成!\n",
+
+  "ProcessPassageFinishInfo": "\t- '{filepath}' 文件的段落处理完成!",
+
+  "PackageStartInfo": "===== 开始打包模组...",
+  "PackageEmptyModInfo": "***** '{name}' 模组中无任何文件!\n",
+  "PackageFinishModInfo": "\t- '{filename}' 模组打包完成!",
+  "PackageFinishInfo": "##### 所有模组打包完成!\n",
+
+  "DropResultsDirsStartInfo": "===== 开始删除结果文件夹...",
+  "DropResultsDirsFinishInfo": "##### 结果文件夹删除完成!\n"
+}

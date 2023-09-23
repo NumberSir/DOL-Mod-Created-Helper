@@ -1,0 +1,38 @@
+{
+  "BaseHelperExceptionMsg": "Unknown error occurred",
+  "NonExistenceSourceCodeExceptionMsg": "Source code folder non-exists",
+  "MissingInfoJsonExceptionMsg": "Missing required 'info.json' file",
+
+  "GetLatestCommitStartInfo": "===== Starting getting latest commit... - {url}",
+  "GetLatestCommitMsgInfo": "\t-latest commit: {latest_commit}\n",
+  "GetLatestCommitFinishInfo": "##### Finished getting latest commit! - {file}\n",
+
+  "DownloadStartInfo": "===== Starting downloading game source code... - {url}",
+  "DownloadAlreadyExistInfo": "##### 'dol.zip' Already exists!\n",
+  "DownloadErrorInfo": "***** ERROR: Cannot download game source code! - Please check your internet connection and retry\n",
+  "DownloadFinishInfo": "##### Finished downloading game source code! - {file}\n",
+
+  "ExtractStartInfo": "===== Starting extracting game zip...",
+  "ExtractFinishInfo": "##### Finished extracting game zip!\n",
+
+  "DropGameDirsStartInfo": "===== Starting removing game folder...",
+  "DropGameDirsFinishInfo": "##### Finished removing game folder!\n",
+
+  "BuildBootJsonStartInfo": "===== Starting building 'boot.json'...",
+  "BuildBootJsonNotFoundInfo": "***** No mods found!\n",
+  "BuildBootJsonFinishedInfo": "##### Finished building 'boot.json'!\n",
+
+  "ProcessResultsStartInfo": "===== Starting processing mods...",
+  "ProcessResultsFinishModInfo": "\t- Finished processing '{name}' mod",
+  "ProcessResultsFinishInfo": "##### Finished processing all mods!\n",
+
+  "ProcessPassageFinishInfo": "\t- Finished processing passages in '{filepath}'",
+
+  "PackageStartInfo": "===== Starting packaging mods...",
+  "PackageEmptyModInfo": "***** No files found in '{name}'!\n",
+  "PackageFinishModInfo": "\t- Finished packaging '{filename}' mod!",
+  "PackageFinishInfo": "##### Finished packaging all mods!\n",
+
+  "DropResultsDirsStartInfo": "===== Starting removing results folder...",
+  "DropResultsDirsFinishInfo": "##### Finished removing results folder!\n"
+}
