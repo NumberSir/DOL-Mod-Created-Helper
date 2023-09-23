@@ -3,6 +3,8 @@
 ---
 | [简体中文](../../README.md) | [English](README-en.md) |
 
+![maven](https://img.shields.io/badge/python-3.10%2B-blue)
+
 ---
 ## Menu
 * [Description](#description)
