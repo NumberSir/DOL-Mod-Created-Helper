@@ -204,6 +204,8 @@ class GameMod:
                     )
 
                     if not file.endswith(".twee"):
+                        if not (DIR_TEMP_ROOT / name / filepath).parent.exists():
+                            os.makedirs((DIR_TEMP_ROOT / name / filepath).parent, exist_ok=True)
                         shutil.copyfile(
                             Path(root) / file,
                             DIR_TEMP_ROOT / name / filepath
@@ -211,6 +213,8 @@ class GameMod:
                     if auto_apply:
                         for filedir in os.listdir(DIR_TEMP_ROOT / name):
                             if (DIR_TEMP_ROOT / name / filedir).is_file():
+                                if not (DIR_SOURCE_REPO / filedir).parent.exists():
+                                    os.makedirs((DIR_SOURCE_REPO / filedir).parent, exist_ok=True)
                                 shutil.copyfile(
                                     DIR_TEMP_ROOT / name / filedir,
                                     DIR_SOURCE_REPO / filedir
