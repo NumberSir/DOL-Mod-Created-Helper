@@ -1,0 +1,38 @@
+{
+  "BaseHelperExceptionMsg": "알 수 없는 오류가 발생했습니다",
+  "NonExistenceSourceCodeExceptionMsg": "게임 소스 코드 폴더가 존재하지 않습니다",
+  "MissingInfoJsonExceptionMsg": "필수 'info.json' 파일이 없습니다",
+
+  "GetLatestCommitStartInfo": "===== 최신 리포지토리 버전 획득 시작... - {url}",
+  "GetLatestCommitMsgInfo": "\t- 최신 리포지토리 버전:  {latest_commit}\n",
+  "GetLatestCommitFinishInfo": "##### 최신 리포지토리 버전 획득 완료! - {file}\n",
+
+  "DownloadStartInfo": "===== 게임 소스 코드 다운로드 시작... - {url}",
+  "DownloadAlreadyExistInfo": "##### 'dol.zip' 파일이 다운로드되었습니다!\n",
+  "DownloadErrorInfo": "***** 오류: 게임 소스 코드를 다운로드할 수 없습니다! - 네트워크 연결을 확인한 후 다시 시도하세요\n",
+  "DownloadFinishInfo": "##### 게임 소스 코드 다운로드 완료! - {file}\n",
+
+  "ExtractStartInfo": "===== 게임 소스 코드 압축 풀기 시작...",
+  "ExtractFinishInfo": "##### 게임 소스 코드 압축 풀기 완료!\n",
+
+  "DropGameDirsStartInfo": "===== 게임 폴더 삭제 시작...",
+  "DropGameDirsFinishInfo": "##### 게임 폴더 삭제 완료!\n",
+
+  "BuildBootJsonStartInfo": "===== 'boot.json' 파일 쓰기 시작...",
+  "BuildBootJsonNotFoundInfo": "***** 현재 모드이 없습니다!\n",
+  "BuildBootJsonFinishedInfo": "##### 'boot.json' 파일 쓰기 완료!\n",
+
+  "ProcessResultsStartInfo": "===== 모드 처리 시작...",
+  "ProcessResultsFinishModInfo": "\t- '{name}' 모드 처리 완료!",
+  "ProcessResultsFinishInfo": "##### 모든 모드 처리 완료!\n",
+
+  "ProcessPassageFinishInfo": "\t- '{filepath}' 파일 단락 처리 완료!",
+
+  "PackageStartInfo": "===== 모드 패키징 시작...",
+  "PackageEmptyModInfo": "***** '{name}' 모드에 파일이 없습니다!\n",
+  "PackageFinishModInfo": "\t- '{filename}' 모드 패키징 완료!",
+  "PackageFinishInfo": "##### 모든 모드 패키징 완료!\n",
+
+  "DropResultsDirsStartInfo": "===== 결과 폴더 삭제 시작...",
+  "DropResultsDirsFinishInfo": "##### 결과 폴더 삭제 완료!\n"
+}
