@@ -1,40 +1,44 @@
+import json
 from pathlib import Path
+import locale
+
 
 DIR_ROOT = Path(__file__).parent.parent
 
-"""源库位置，请在这里修改，默认丢在根目录下"""
+DIR_DATA_ROOT = DIR_ROOT / "data"
+DIR_LANGS_ROOT = DIR_DATA_ROOT / "langs"
+DIR_MODS_ROOT = DIR_ROOT / "mods"
+DIR_RESULTS_ROOT = DIR_ROOT / "results"
+DIR_TEMP_ROOT = DIR_DATA_ROOT / "tmp"
 DIR_SOURCE_REPO = DIR_ROOT / "degrees-of-lewdity-master"
 
-"""模组目录位置"""
-DIR_MODS_ROOT = DIR_ROOT / "mods"
+FILE_ALL_SOURCE_PASSAGES = DIR_DATA_ROOT / "all_source_passages.json"
+FILE_ONLY_SOURCE_PASSAGES = DIR_DATA_ROOT / "only_source_passages.json"
+FILE_FILE_SOURCE_PASSAGES = DIR_DATA_ROOT / "file_source_passages.json"
+FILE_ALL_MODS_PASSAGES = DIR_DATA_ROOT / "all_mods_passages.json"
+FILE_FILE_MODS_PASSAGES = DIR_DATA_ROOT / "file_mods_passages.json"
 
-"""结果位置"""
-DIR_RESULTS = DIR_ROOT / "results"
-
-"""记录源代码中所有段落的文件"""
-FILE_ALL_SOURCE_PASSAGES = DIR_ROOT / "data" / "all_source_passages.json"
-
-"""记录源代码中所有段落的文件，只有段落名，方便查重"""
-FILE_ONLY_SOURCE_PASSAGES = DIR_ROOT / "data" / "only_source_passages.json"
-
-"""记录源代码中所有段落的文件，按文件分类，减少读写"""
-FILE_FILE_SOURCE_PASSAGES = DIR_ROOT / "data" / "file_source_passages.json"
-
-"""记录所有模组中所有段落的文件"""
-FILE_ALL_MODS_PASSAGES = DIR_ROOT / "data" / "all_mods_passages.json"
-
-"""记录所有模组中所有段落的文件，按文件分类，减少读写"""
-FILE_FILE_MODS_PASSAGES = DIR_ROOT / "data" / "file_mods_passages.json"
-
+SYS_LANG = (locale.getdefaultlocale()[0]).lower()  # zh_cn
+LANG_FILE = DIR_LANGS_ROOT / f"{SYS_LANG}.json"
+LANG_FILE = LANG_FILE if LANG_FILE.exists() else DIR_LANGS_ROOT / "en_us.json"
+with open(LANG_FILE, "r", encoding="utf-8") as fp:
+    LANGS = json.load(fp)
+with open(DIR_LANGS_ROOT / "en_us.json", "r", encoding="utf-8") as fp:
+    DEFAULT_LANGS = json.load(fp)
 
 __all__ = [
     "DIR_ROOT",
     "DIR_SOURCE_REPO",
     "DIR_MODS_ROOT",
-    "DIR_RESULTS",
+    "DIR_RESULTS_ROOT",
+    "DIR_TEMP_ROOT",
+    "DIR_DATA_ROOT",
+    "DIR_LANGS_ROOT",
     "FILE_ALL_SOURCE_PASSAGES",
     "FILE_ONLY_SOURCE_PASSAGES",
     "FILE_FILE_SOURCE_PASSAGES",
     "FILE_ALL_MODS_PASSAGES",
-    "FILE_FILE_MODS_PASSAGES"
+    "FILE_FILE_MODS_PASSAGES",
+    "LANGS",
+    "DEFAULT_LANGS"
 ]

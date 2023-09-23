@@ -4,21 +4,30 @@
 由于原游戏引擎面向字符串编程的特性，以及变量文本硬编码的困难，编写模组十分困难，因此简单十分钟手搓一个帮助编写模组的小脚本。
 
 ## 食用方法
-注意：由于 `main.py` 中的 `mod.cover_source_files()` 方法会覆盖游戏源文件，因此推荐注释掉此行，自行备份好源文件后手动覆盖游戏源文件。
 
+### 使用步骤
 1. 需要 [Python 3.10+](https://www.python.org/downloads/release/python-31011/)
 2. 在根目录使用 `pip install -r requirements.txt` 安装依赖库
-3. 需要 [`https://gitgud.io/Vrelnir/degrees-of-lewdity`](https://gitgud.io/Vrelnir/degrees-of-lewdity) 游戏源码，请自行下载，默认将 `degrees-of-lewdity-master` 放在根目录下
-4. 编写你自己的模组
-5. 运行 `main.py` (`python -m main`)
-6. 结果会生成在 `results` 文件夹中，接下来请使用 [`https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader`](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 进行下一步操作
-- 注：如果需要频繁改动测试，随改随测，请在 `main.py` 中阅读对应注释操作
+3. 编写你自己的模组
+4. 运行 `main.py` (`python -m main`)
+5. 结果会以 zip 压缩包形式生成在 `results` 文件夹中，接下来请使用 [https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 进行下一步操作
+6. 如果将 `main.py` 文件中的 `auto_apply=False` 改为 `auto_apply=True` 后运行，如此运行结果将会用模组文件自动覆盖游戏源码，方便测试使用
+
+### 本脚本的工作流程
+1. 每次运行前会自动删除 `degrees-of-lewdity-master`, `results` 文件夹，__请不要向其中放置重要文件__
+2. 从源码仓库下载游戏源码并解压到根目录
+3. 根据模组内容自动编写 `boot.json` 文件
+4. 将模组内容处理并打包为 zip 文件，可以通过 [https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 加载
+5. 如果 `main.py` 文件中的 `auto_apply=True`，则每次运行完将会自动用模组文件自动覆盖游戏源码
 
 ## 编写自己模组的注意事项
 ### 名词解释 ###
 
 - __“段落”__
-  - 在 .twee 文件中形如 `:: PASSAGE_NAME [WIDGET]` 的内容为段落的开头，从此开始一直到下一个段落开头均为此段落的内容
+  - 在 .twee 文件中形如 `:: PASSAGE_NAME` 或 `:: PASSAGE_NAME [widget]` 的内容为段落的开头，从此开始一直到下一个段落开头均为此段落的内容。这是游戏内容的基本单位。
+
+- __“根目录”__
+  - `main.py` 所在的目录
 
 ### 注意事项 ###
 1. 请在 `<根目录>/mods/<模组名或作者名>` 文件夹下编写你的模组，或者将你正在编写的模组文件夹按照下方结构放进 `<根目录>/mods` 文件夹中
@@ -27,63 +36,81 @@
 3. 本项目文件夹结构应该类似于：
 ```text
 <根目录>
-├── data
-├── degrees-of-lewdity-master
-├── mods
-│   └── Number_Sir
-│       ├── info.json <这个文件是必需的>
-│       ├── img
-│       │   └── <这里放图片，css 代码等，参照原游戏目录>
-│       ├── game
-│       │   └── <这里放 twee 和 js 代码，参照原游戏目录>
-│       └── modules
-│          └── css
-│              └── <这里面放 css, js 等文件，参照原游戏目录>
-├── results
-└── src
+ ├── data
+ │   ├── docs (说明文档，未完成)
+ │   ├── langs (程序日志输出的语言)
+ │   │   ├── en_us.json (默认语言)
+ │   │   └── zh_cn.json (简体中文)
+ │   ...
+ ├── degrees-of-lewdity-master (游戏源码)
+ ├── mods
+ │   └── Number_Sir (你的模组名称或作者昵称)
+ │       ├── info.json <这个文件是必需的>
+ │       ├── img (参照源码目录结构放置图片等文件)
+ │       ├── game (参照源码目录结构放置 .twee 等文件)
+ │       ├── modules 
+ │       │   └── css (参照源码目录结构放置 .css 等文件)
+ │      ... 
+ ├── results
+ ├── src
+ ├── LICENSE
+ ├── main.py
+ ├── README.md
+ ├── requirements.txt
+ ...
 ```
 注意 `img`, `game`, `css` 三个文件夹并不是都必需的，比如你只想做类似美化的模组，就可以只有 `img` 文件夹，等等。
 
-请在 `info.json` 文件中填写以下信息：
+---
+### 关于 info.json 文件
+请在 `info.json` 文件中填写以下信息，如果你没有创建 `info.json`，本脚本将在首次运行后创建一个模板 `info.json` 文件，请对其改动：
 ```json
 {
-  "name": "<这个模组的名称>",
-  "version": "<这个模组的版本>"
+  "name": "这个模组的名称",
+  "version": "这个模组的版本",
+  "ignoreList": [
+    "要忽略的目录路径",
+    "要忽略的文件路径",
+    "注意未填入 ignore 的除 twee, js, css 与图片文件外的文件将全部打入压缩包中。"
+  ] ,
+  "scriptFileList_inject_early": [
+    "提前注入的 js 脚本路径, 会在当前模组加载后立即插入到 dom 中由浏览器按照 <script> 的标注执行方式执行",
+    "可以为空列表。"
+  ],
+  "scriptFileList_earlyload": [
+    "提前加载的 js 脚本, 会在当前模组加载后, inject_early 脚本全部插入完成后，由 ModLoader 执行并等待异步指令返回，可以在这里读取到未修改的段落内容",
+    "可以为空列表。"
+  ],
+  "scriptFileList_preload": [
+    "预加载的 js 脚本, 会在引擎初始化前、模组的数据文件全部加载并合并到 html 的 tw-storydata 中后, 由 ModLoader 执行并等待异步指令返回, 可以在此处调用 ModLoader 的 API 读取最新的段落数据并动态修改覆盖段落内容",
+    "注意 scriptFileList_preload 文件有固定的格式, 详见 ModLoader 库",
+    "可以为空列表。"
+  ]
 }
 ```
-
+比如一个最简单的 `info.json` 文件应该形如:
+```json
+{
+  "name": "EXAMPLE MOD",
+  "version": "1.0.0"
+}
+```
+---
+### 关于模组文件
 请遵循以下格式：
-   1. 对于完全新建、自创的内容，请注意不要和原游戏内容重名，比如：
+   1. 对于完全新建、自创的内容，比如：`新建一个.twee文件`、`新建一张衣服的图片文件`等，请注意不要和原游戏内容重名，比如：
       * 图片命名、路径不要和原游戏内容重复
       * `.twee`, `.js`, `.css` 文件命名不要和原游戏内容重复
       * `.twee` 文件中的段落名不要和原游戏有的重复
-
-   2. 对于想覆盖原游戏的已有的内容：
+   2. 对于想覆盖原游戏的已有的内容，比如：`把原有的衣服图片文件重新绘制`、`对已有的段落内容中新加代码`等：
       * 图片命名、路径请和原游戏文件夹中的完全一致
-      * `.twee` 中的段落，请把原游戏中的整段内容(从 `:: PASSAGE_NAME` 开始到下一个 `:: PASSAGE_NAME` 的上一行结束)全部复制出来到你的文件中，然后进行改动
+      * `.twee` 中的段落，请把原游戏中有修改、增加、删除的整个段落(从 `:: PASSAGE_NAME` 开始到下一个 `:: PASSAGE_NAME` 的上一行结束)全部复制出来到你的文件中，然后进行改动
       * `.js`, `.css` 命名、路径请和原游戏文件夹中的完全一致
       * __不推荐图片、js、css 文件覆盖原游戏内容，请尽量创建新的图片、js、css 文件。__
-
    3. 注意你写在自己模组内容中的所有段落都应该是相比于源代码中有所改动的，如果你复制了一个段落出来但没有做改动，记得把它删掉。
 
-## 对于自己模组仓库的建议
-如果希望创建自己的模组仓库并上传文件，建议如下：
-1. 建议按照上述注意事项中 `mods` 文件夹结构创建仓库目录结构，即你的仓库目录应该形如：
-      ```text
-      <根目录>
-      ├── .gitignore
-      ├── Number_Sir
-      │   ├── info.json <这个文件是必需的>
-      │   ├── img
-      │   │   └── <这里放图片，css 代码等，参照原游戏目录>
-      │   ├── game
-      │   │   └── <这里放 twee 和 js 代码，参照原游戏目录>
-      │   └── modules
-      │      └── css
-      │          └── <这里面放 css, js 等文件，参照原游戏目录>
-      ├── README.md
-      ...
-      ```
-2. 建议尽量少改动原游戏已有的段落，多新增段落，以减少可能存在的bug、未来更新时可能有的麻烦以及未来可能有的多模组兼容性问题
+### 举例说明
+1. 如果你想修改源码中已经有的 `game/overworld-town/loc-school/canteen.twee` 文件中的 `:: Canteen` 段落，请先创建新文件：`/mods/<你的模组名称>/game/overworld-town/loc-school/canteen.twee`，然后将源码中的 `:: Canteen` 这一行开始一直到 `:: Canteen Lunch` 的上一行复制到模组文件中，然后进行修改。
+2. 如果你想新建一个完全不存在的段落比如 `:: Example Mod Test Passage`，请先创建新文件：`/mods/<你的模组名称>/game/example mod test.twee`，然后在其中创作你的新段落
 
 [dol]: https://gitgud.io/Vrelnir/degrees-of-lewdity
