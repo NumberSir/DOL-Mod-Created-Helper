@@ -198,17 +198,16 @@ class GameMod:
                     if not (DIR_RESULTS_ROOT / name / filepath).parent.exists():
                         os.makedirs((DIR_RESULTS_ROOT / name / filepath).parent, exist_ok=True)
 
-                    shutil.copyfile(
-                        Path(root) / file,
-                        DIR_RESULTS_ROOT / name / filepath
-                    )
-
                     if not file.endswith(".twee"):
                         if not (DIR_TEMP_ROOT / name / filepath).parent.exists():
                             os.makedirs((DIR_TEMP_ROOT / name / filepath).parent, exist_ok=True)
                         shutil.copyfile(
                             Path(root) / file,
                             DIR_TEMP_ROOT / name / filepath
+                        )
+                        shutil.copyfile(
+                            Path(root) / file,
+                            DIR_RESULTS_ROOT / name / filepath
                         )
                     if auto_apply:
                         for filedir in os.listdir(DIR_TEMP_ROOT / name):
@@ -309,6 +308,10 @@ class GameMod:
         if not (DIR_TEMP_ROOT / name / filepath).parent.exists():
             os.makedirs((DIR_TEMP_ROOT / name / filepath).parent, exist_ok=True)
         with open(DIR_TEMP_ROOT / name / filepath, "w", encoding="utf-8") as fp:
+            fp.writelines(source_lines)
+        if not (DIR_RESULTS_ROOT / name / filepath).parent.exists():
+            os.makedirs((DIR_RESULTS_ROOT / name / filepath).parent, exist_ok=True)
+        with open(DIR_RESULTS_ROOT / name / filepath, "w", encoding="utf-8") as fp:
             fp.writelines(source_lines)
         logger.info(locale(Langs.ProcessPassageFinishInfo, filepath=filepath))
 
