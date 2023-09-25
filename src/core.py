@@ -139,14 +139,14 @@ class GameMod:
                     "styleFileList": [],
                     "scriptFileList": [],
                     "tweeFileList": [],
-                    "imgFileList": [],
-                    "additionFile": [],
+                    "imgFileList": []
                 }
                 for key in {
                     "scriptFileList_inject_early",
                     "scriptFileList_earlyload",
                     "scriptFileList_preload",
                     "ignoreList",
+                    "additionFile",
                     "addonPlugin",
                     "dependenceInfo"
                 }:
@@ -160,42 +160,38 @@ class GameMod:
     def process_results(self, auto_apply: bool = False):
         """From 'mods' to 'results'"""
         logger.info(locale(Langs.ProcessResultsStartInfo))
+        addition_flag = False
         for name in os.listdir(DIR_MODS_ROOT):
+            if self._boot_json[name].get("additionFile"):
+                addition_flag = True
             for root, dir_list, file_list in os.walk(DIR_MODS_ROOT / name):
                 for file in file_list:
                     filepath = Path("/".join((Path(root) / file).__str__().replace("\\", "/").split(f"{name}/")[1:]))
 
                     filepath_str = filepath.__str__().replace("\\", "/")
-                    if self._boot_json[name].get("ignoreList") and (
-                        # Ignore File
-                        filepath in self._boot_json[name]["ignoreList"]
-                        # Ignore Folder
-                        or filepath.parent in self._boot_json[name]["ignoreList"]
-                    ) or file == "boot.json":
-                        continue
+                    filepath_parent_str = filepath.parent.__str__().replace("\\", "/")
 
-                    # Twine
+                    if self._boot_json[name].get("ignoreList") and not addition_flag:
+                        if (
+                            filepath_str in self._boot_json[name]["ignoreList"]
+                            or filepath_parent_str in self._boot_json[name]["ignoreList"]
+                        ) or file == "boot.json":
+                            continue
+
                     if file.endswith(".twee"):
                         self._process_passage(filepath, name)
                         self._boot_json[name]["tweeFileList"].append(filepath_str)
-
-                    # JavaScript
                     elif file.endswith(".js"):
                         self._boot_json[name]["scriptFileList"].append(filepath_str)
-
-                    # StyleSheet
                     elif file.endswith(".css"):
                         self._boot_json[name]["styleFileList"].append(filepath_str)
-
-                    # Image
                     elif any(file.endswith(suf) for suf in {
                         ".jpg", ".png", ".gif", "svg"
                     }):
                         self._boot_json[name]["imgFileList"].append(filepath_str)
-
-                    # Others
                     else:
-                        self._boot_json[name]["additionFile"].append(filepath_str)
+                        if not(addition_flag and (filepath_str in self._boot_json[name]["additionFile"])):
+                            continue
 
                     if not (DIR_RESULTS_ROOT / name / filepath).parent.exists():
                         os.makedirs((DIR_RESULTS_ROOT / name / filepath).parent, exist_ok=True)

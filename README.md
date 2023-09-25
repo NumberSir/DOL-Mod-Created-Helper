@@ -93,7 +93,11 @@
     "要忽略的目录路径",
     "要忽略的文件路径",
     "注意未填入 ignore 的除 twee, js, css 与图片文件外的文件将全部打入压缩包中。"
-  ] ,
+  ],
+  "additionFile": [
+    "要加进压缩包的文件路径",
+    "注意当 additionFile 与 ignoreList 同时存在时，会以 additionFile 为准"
+  ],
   "scriptFileList_inject_early": [
     "提前注入的 js 脚本路径, 会在当前模组加载后立即插入到 dom 中由浏览器按照 <script> 的标注执行方式执行",
     "可以为空列表。"
@@ -105,6 +109,16 @@
   "scriptFileList_preload": [
     "预加载的 js 脚本, 会在引擎初始化前、模组的数据文件全部加载并合并到 html 的 tw-storydata 中后, 由 ModLoader 执行并等待异步指令返回, 可以在此处调用 ModLoader 的 API 读取最新的段落数据并动态修改覆盖段落内容",
     "注意 scriptFileList_preload 文件有固定的格式, 详见 ModLoader 库",
+    "可以为空列表。"
+  ],
+  "addonPlugin": [
+    "依赖的插件列表，在此声明本mod依赖哪些插件，在此处声明后会调用对应的插件，不满足的依赖会在加载日志中产生警告",
+    "具体格式请参照 ModLoader 库",
+    "可以为空列表。"
+  ],
+  "dependenceInfo": [
+    "依赖的mod列表，可以在此声明此mod依赖哪些前置mod，不满足的依赖会在加载日志中产生警告",
+    "具体格式请参照 ModLoader 库",
     "可以为空列表。"
   ]
 }
