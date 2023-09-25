@@ -249,6 +249,10 @@ class GameMod:
                 DIR_MODS_ROOT / name / filepath,
                 DIR_TEMP_ROOT / name / filepath
             )
+            shutil.copyfile(
+                DIR_MODS_ROOT / name / filepath,
+                DIR_RESULTS_ROOT / name / filepath
+            )
             return
 
         # 存在原文件，删除段落 + 拼接 后写入
