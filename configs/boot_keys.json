@@ -1,0 +1,19 @@
+{
+  "required": {
+    "name": "",
+    "version": "",
+    "styleFileList": [],
+    "scriptFileList": [],
+    "tweeFileList": [],
+    "imgFileList": []
+  },
+  "optional": {
+    "scriptFileList_inject_early": [],
+    "scriptFileList_earlyload": [],
+    "scriptFileList_preload": [],
+    "additionFile": [],
+    "addonPlugin": [],
+    "dependenceInfo": [],
+    "ignoreList": []
+  }
+}

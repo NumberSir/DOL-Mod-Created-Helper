@@ -21,12 +21,12 @@ class NonExistenceSourceCodeException(_BaseHelperException):
         super().__init__(msg, detail)
 
 
-class MissingInfoJsonException(_BaseHelperException):
+class MissingBootJsonException(_BaseHelperException):
     def __init__(self, msg=locale(Langs.MissingInfoJsonExceptionMsg), detail: str = None):
         super().__init__(msg, detail)
 
 
 __all__ = [
     "NonExistenceSourceCodeException",
-    "MissingInfoJsonException"
+    "MissingBootJsonException"
 ]

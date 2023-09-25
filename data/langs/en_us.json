@@ -1,7 +1,7 @@
 {
   "BaseHelperExceptionMsg": "Unknown error occurred",
   "NonExistenceSourceCodeExceptionMsg": "Source code folder non-exists",
-  "MissingInfoJsonExceptionMsg": "Missing required 'info.json' file",
+  "MissingBootJsonExceptionMsg": "Missing required 'info.json' file",
 
   "GetLatestCommitStartInfo": "===== Starting getting latest commit... - {url}",
   "GetLatestCommitMsgInfo": "\t-latest commit: {latest_commit}\n",

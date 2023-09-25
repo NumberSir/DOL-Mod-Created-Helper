@@ -18,6 +18,7 @@ from .langs import locale, Langs
 
 
 class GameSourceCode:
+    """gitgud"""
     FILE_COMMITS = DIR_DATA_ROOT / "commits.json"
     FILE_GAME_ZIP = DIR_DATA_ROOT / "dol.zip"
 
@@ -25,7 +26,7 @@ class GameSourceCode:
     REPO_COMMITS_URL = "https://gitgud.io/api/v4/projects/8430/repository/commits"
     REPO_ZIP_URL = "https://gitgud.io/Vrelnir/degrees-of-lewdity/-/archive/master/degrees-of-lewdity-master.zip"
 
-    def __init__(self, client: httpx.AsyncClient):
+    def __init__(self, client: httpx.AsyncClient, total: bool = False):
         self._client = client
         self._version: str | None = None
 
@@ -37,7 +38,7 @@ class GameSourceCode:
         self._is_latest = False
         self._download_flag = not self.FILE_GAME_ZIP.exists()
 
-        self._drop_dirs()
+        self._drop_dirs(total)
         self._make_dirs()
 
     @staticmethod
@@ -46,6 +47,7 @@ class GameSourceCode:
         os.makedirs(DIR_MODS_ROOT, exist_ok=True)
 
     async def get_latest_commit(self) -> None:
+        """download costs time, just extract the zip file if repo is latest"""
         logger.info(locale(Langs.GetLatestCommitStartInfo, url=self.REPO_COMMITS_URL))
         response = await self._client.get(self.REPO_COMMITS_URL, params={"ref_name": "master"})
         repo_json = response.json()
@@ -99,10 +101,15 @@ class GameSourceCode:
         logger.info(locale(Langs.ExtractFinishInfo))
 
     @staticmethod
-    def _drop_dirs():
+    def _drop_dirs(total: bool = False):
         """Cleaning"""
         logger.info(locale(Langs.DropGameDirsStartInfo))
-        shutil.rmtree(DIR_SOURCE_REPO, ignore_errors=True)
+        if total:
+            shutil.rmtree(DIR_SOURCE_REPO)
+        else:
+            shutil.rmtree(DIR_SOURCE_REPO / "game", ignore_errors=True)
+            shutil.rmtree(DIR_SOURCE_REPO / "img", ignore_errors=True)
+            shutil.rmtree(DIR_SOURCE_REPO / "module", ignore_errors=True)
         logger.info(locale(Langs.DropGameDirsFinishInfo))
 
 
@@ -121,40 +128,37 @@ class GameMod:
 
     def build_boot_json(self):
         """For ModLoader"""
+        with open(DIR_CONFIGS_ROOT / "boot_keys.json", "r", encoding="utf-8") as fp:
+            keys_item = json.load(fp)
+
+        required_item = keys_item["required"]
+        optional_item = keys_item["optional"]
+
         logger.info(locale(Langs.BuildBootJsonStartInfo))
         if not os.listdir(DIR_MODS_ROOT):
             logger.warning(locale(Langs.BuildBootJsonNotFoundInfo))
 
         for name in os.listdir(DIR_MODS_ROOT):
-            info_flag = False
+            self._boot_json[name] = {
+                required_key: required_value
+                for required_key, required_value in required_item.items()
+            }
+
+            boot_flag = False
             for dir_name in os.listdir(DIR_MODS_ROOT / name):
                 if dir_name != "boot.json":
                     continue
-                info_flag = True
+                boot_flag = True
                 with open(DIR_MODS_ROOT / name / "boot.json", "r", encoding="utf-8") as fp:
                     data = json.load(fp)
-                self._boot_json[name] = {
-                    "name": data.get("name", name),
-                    "version": data.get("version", "0.0.0"),
-                    "styleFileList": [],
-                    "scriptFileList": [],
-                    "tweeFileList": [],
-                    "imgFileList": []
-                }
-                for key in {
-                    "scriptFileList_inject_early",
-                    "scriptFileList_earlyload",
-                    "scriptFileList_preload",
-                    "ignoreList",
-                    "additionFile",
-                    "addonPlugin",
-                    "dependenceInfo"
-                }:
+                self._boot_json[name]["name"] = data.get("name", name)
+                self._boot_json[name]["version"] = data.get("version", name)
+                for key in optional_item:
                     if data.get(key):
                         self._boot_json[name][key] = data[key]
                 break
-            if not info_flag:
-                raise MissingInfoJsonException
+            if not boot_flag:
+                raise MissingBootJsonException
         logger.info(locale(Langs.BuildBootJsonFinishedInfo))
 
     def process_results(self, auto_apply: bool = False):
@@ -167,16 +171,18 @@ class GameMod:
             for root, dir_list, file_list in os.walk(DIR_MODS_ROOT / name):
                 for file in file_list:
                     filepath = Path("/".join((Path(root) / file).__str__().replace("\\", "/").split(f"{name}/")[1:]))
-
                     filepath_str = filepath.__str__().replace("\\", "/")
                     filepath_parent_str = filepath.parent.__str__().replace("\\", "/")
 
-                    if self._boot_json[name].get("ignoreList") and not addition_flag:
-                        if (
+                    if (
+                        self._boot_json[name].get("ignoreList")
+                        and not addition_flag
+                        and (
                             filepath_str in self._boot_json[name]["ignoreList"]
                             or filepath_parent_str in self._boot_json[name]["ignoreList"]
-                        ) or file == "boot.json":
-                            continue
+                        ) or file == "boot.json"
+                    ):
+                        continue
 
                     if file.endswith(".twee"):
                         self._process_passage(filepath, name)
@@ -207,7 +213,7 @@ class GameMod:
                             Path(root) / file,
                             DIR_RESULTS_ROOT / name / filepath
                         )
-                    if auto_apply:
+                    if auto_apply:  # 自动覆盖源码
                         for filedir in os.listdir(DIR_TEMP_ROOT / name):
                             if (DIR_TEMP_ROOT / name / filedir).is_file():
                                 if not (DIR_SOURCE_REPO / filedir).parent.exists():

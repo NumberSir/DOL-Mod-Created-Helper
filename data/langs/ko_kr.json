@@ -1,7 +1,7 @@
 {
   "BaseHelperExceptionMsg": "알 수 없는 오류가 발생했습니다",
   "NonExistenceSourceCodeExceptionMsg": "게임 소스 코드 폴더가 존재하지 않습니다",
-  "MissingInfoJsonExceptionMsg": "필수 'info.json' 파일이 없습니다",
+  "MissingBootJsonExceptionMsg": "필수 'info.json' 파일이 없습니다",
 
   "GetLatestCommitStartInfo": "===== 최신 리포지토리 버전 획득 시작... - {url}",
   "GetLatestCommitMsgInfo": "\t- 최신 리포지토리 버전:  {latest_commit}\n",

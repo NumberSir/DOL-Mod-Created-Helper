@@ -1,7 +1,7 @@
 {
   "BaseHelperExceptionMsg": "发生未知错误",
   "NonExistenceSourceCodeExceptionMsg": "游戏源码文件夹不存在",
-  "MissingInfoJsonExceptionMsg": "缺少必需的 'info.json' 文件",
+  "MissingBootJsonExceptionMsg": "缺少必需的 'info.json' 文件",
 
   "GetLatestCommitStartInfo": "===== 开始获取最新仓库版本... - {url}",
   "GetLatestCommitMsgInfo": "\t- 最新仓库版本: {latest_commit}\n",

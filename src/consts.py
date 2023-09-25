@@ -6,6 +6,7 @@ import locale
 DIR_ROOT = Path(__file__).parent.parent
 
 DIR_DATA_ROOT = DIR_ROOT / "data"
+DIR_CONFIGS_ROOT = DIR_ROOT / "configs"
 DIR_LANGS_ROOT = DIR_DATA_ROOT / "langs"
 DIR_MODS_ROOT = DIR_ROOT / "mods"
 DIR_RESULTS_ROOT = DIR_ROOT / "results"
@@ -27,6 +28,7 @@ __all__ = [
     "DIR_RESULTS_ROOT",
     "DIR_TEMP_ROOT",
     "DIR_DATA_ROOT",
+    "DIR_CONFIGS_ROOT",
     "DIR_LANGS_ROOT",
     "LANGS",
     "DEFAULT_LANGS"
