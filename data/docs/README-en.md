@@ -14,7 +14,7 @@
 * [Notes](#notes-about-creating-your-own-mod)
   * [Definition](#definition-)
   * [Details](#details-)
-  * [info.json](#about-infojson)
+  * [boot.json](#about-bootjson)
   * [Mod's file](#about-mods-files)
   * [Examples](#examples)
 ---
@@ -66,7 +66,7 @@ This script is designed to cooperate with [ModLoader](https://github.com/Lyoko-J
  ├── degrees-of-lewdity-master (source code of the game)
  ├── mods
  │   └── Number_Sir (the name of your mods)
- │       ├── info.json <REQUIRED>
+ │       ├── boot.json <REQUIRED>
  │       ├── img (images-ish files, please refer to the source code of the game)
  │       ├── game (.twee-ish files, please refer to the source code of the game)
  │       ├── modules 
@@ -83,8 +83,8 @@ This script is designed to cooperate with [ModLoader](https://github.com/Lyoko-J
 Note that all `img`, `game` and `css` folders are NOT REQUIRED. Such as the `beeesss` mod, only `img` folder is enough.  
 
 ---
-### About info.json
-Please fill in the following information in the file `info.json`：
+### About boot.json
+Please fill in the following information in the file `boot.json`：
 ```json
 {
   "name": "The name of your mod, like 'Example Mod', REQUIRED", 
@@ -108,7 +108,7 @@ Please fill in the following information in the file `info.json`：
   ]
 }
 ```
-For example, the easiest `info.json` file should be like:
+For example, the easiest `boot.json` file should be like:
 ```json
 {
   "name": "EXAMPLE MOD",

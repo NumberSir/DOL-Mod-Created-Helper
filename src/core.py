@@ -128,10 +128,10 @@ class GameMod:
         for name in os.listdir(DIR_MODS_ROOT):
             info_flag = False
             for dir_name in os.listdir(DIR_MODS_ROOT / name):
-                if dir_name != "info.json":
+                if dir_name != "boot.json":
                     continue
                 info_flag = True
-                with open(DIR_MODS_ROOT / name / "info.json", "r", encoding="utf-8") as fp:
+                with open(DIR_MODS_ROOT / name / "boot.json", "r", encoding="utf-8") as fp:
                     data = json.load(fp)
                 self._boot_json[name] = {
                     "name": data.get("name", name),
@@ -140,13 +140,15 @@ class GameMod:
                     "scriptFileList": [],
                     "tweeFileList": [],
                     "imgFileList": [],
-                    "additionFile": []
+                    "additionFile": [],
                 }
                 for key in {
                     "scriptFileList_inject_early",
                     "scriptFileList_earlyload",
                     "scriptFileList_preload",
-                    "ignoreList"
+                    "ignoreList",
+                    "addonPlugin",
+                    "dependenceInfo"
                 }:
                     if data.get(key):
                         self._boot_json[name][key] = data[key]
@@ -169,7 +171,7 @@ class GameMod:
                         filepath in self._boot_json[name]["ignoreList"]
                         # Ignore Folder
                         or filepath.parent in self._boot_json[name]["ignoreList"]
-                    ) or file == "info.json":
+                    ) or file == "boot.json":
                         continue
 
                     # Twine
@@ -294,21 +296,25 @@ class GameMod:
                 break
 
         for source_idx, source_passage in enumerate(source_passages_info):
+            # 如果原版文件的段落不在模组文件中 -> 模组没有覆盖修改这个段落
             if source_passage["passage"] not in {_["passage"] for _ in mod_passages_info}:
                 continue
 
             # 不在末尾
+            # source_idx: 这个段落在原文件所有段落中排第几
             if source_idx != len(source_passages_info) - 1:
-                slice = source_lines[source_idx: source_passages_info[source_idx+1]["start_line"]-1]
-                source_lines[source_idx: source_passages_info[source_idx + 1]["start_line"] - 1] = ["" for _ in range(len(slice))]
+                # source_lines: 原文件行
+                slice = source_lines[source_passages_info[source_idx]["start_line"]: source_passages_info[source_idx+1]["start_line"]-1]
+                source_lines[source_passages_info[source_idx]["start_line"]: source_passages_info[source_idx+1]["start_line"]-1] = ["" for _ in range(len(slice))]
             else:
-                source_lines[source_idx:] = [""]
+                source_lines[source_passages_info[source_idx]["start_line"]:] = [""]
 
         source_lines.extend(mod_lines)
         if not (DIR_TEMP_ROOT / name / filepath).parent.exists():
             os.makedirs((DIR_TEMP_ROOT / name / filepath).parent, exist_ok=True)
         with open(DIR_TEMP_ROOT / name / filepath, "w", encoding="utf-8") as fp:
             fp.writelines(source_lines)
+
         if not (DIR_RESULTS_ROOT / name / filepath).parent.exists():
             os.makedirs((DIR_RESULTS_ROOT / name / filepath).parent, exist_ok=True)
         with open(DIR_RESULTS_ROOT / name / filepath, "w", encoding="utf-8") as fp:
