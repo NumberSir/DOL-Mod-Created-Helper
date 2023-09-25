@@ -249,6 +249,8 @@ class GameMod:
                 DIR_MODS_ROOT / name / filepath,
                 DIR_TEMP_ROOT / name / filepath
             )
+            if not (DIR_RESULTS_ROOT / name / filepath).parent.exists():
+                os.makedirs((DIR_RESULTS_ROOT / name / filepath).parent, exist_ok=True)
             shutil.copyfile(
                 DIR_MODS_ROOT / name / filepath,
                 DIR_RESULTS_ROOT / name / filepath
