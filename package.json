@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/node": "^20.8.3",
     "axios": "^1.5.1",
     "simple-git": "^3.20.0"
   }
