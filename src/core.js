@@ -12,30 +12,31 @@ const {walkDir} = require('./utils');
 
 class GameSourceCode {
     async initDirs() {
-        await fs.mkdir(DATA_DIR, () => {});
+        await promisify(fs.mkdir)(DATA_DIR);
     }
 
     async getLatestCommit() {
         const url = "https://gitgud.io/api/v4/projects/8430/repository/commits";
         const filepath = path.join(DATA_DIR, './commits.json');
 
-        // 文件不存在则非最新
-        let currentData = null;
-        await fs.access(filepath, err => {
-            if (err) {
-                console.log("commits.json non-existence");
-            } else {
-                fs.readFile(filepath, (err, data) => {
-                    if (err) {
-                        console.log("ERROR while reading commits.json: ", err);
-                    }
-                    currentData = JSON.parse(data.toString());
-                });
-            }
-        })
+        // async-await 模式 写法
+        try {
 
-        // 获取最新版本
-        await axios.get(url).then(async response => {
+            // 文件不存在则非最新
+            let currentData = null;
+            await promisify(fs.access)(filepath).catch(E => {
+                console.log("commits.json non-existence");
+                return Promise.reject(E);
+            });
+            const data = await promisify(fs.readFile)(filepath).catch(err => {
+                console.log("ERROR while reading commits.json: ", err);
+                return Promise.reject(err);
+            });
+            currentData = JSON.parse(data.toString());
+
+            // 获取最新版本
+            const response = await axios.get(url);
+
             let newData = response.data;
             // 是最新
             if (currentData && currentData["short_id"] === newData[0]["short_id"]) {
@@ -44,14 +45,15 @@ class GameSourceCode {
             }
             // 非最新
             console.log("CURRENT LOCAL SOURCE CODE IS LATEST")
-            fs.writeFile(filepath, JSON.stringify(newData[0]), err => {
-                if (err) {
-                    console.log("ERROR while writing commits.json: ", err);
-                }
-            })
-        }).catch(err => {
-            console.log(err);
-        })
+            await promisify(fs.writeFile)(filepath, JSON.stringify(newData[0])).catch(err => {
+                console.log("ERROR while writing commits.json: ", err);
+                return Promise.reject(err);
+            });
+
+        } catch (e) {
+            console.error(e);
+            throw e;
+        }
     }
 
     async updateSourceRepository() {
