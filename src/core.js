@@ -16,6 +16,9 @@ class GameSourceCode {
         await promisify(fs.mkdir)(DATA_DIR);
     }
 
+    /**
+     * @return {Promise<any>}
+     */
     async getLatestCommit() {
         const url = "https://gitgud.io/api/v4/projects/8430/repository/commits";
         const filepath = path.join(DATA_DIR, './commits.json');
@@ -57,6 +60,9 @@ class GameSourceCode {
         }
     }
 
+    /**
+     * @return {Promise<any>}
+     */
     getLatestCommit_then_catch() {
         const url = "https://gitgud.io/api/v4/projects/8430/repository/commits";
         const filepath = path.join(DATA_DIR, './commits.json');
