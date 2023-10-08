@@ -56,6 +56,52 @@ class GameSourceCode {
         }
     }
 
+    getLatestCommit_then_catch() {
+        const url = "https://gitgud.io/api/v4/projects/8430/repository/commits";
+        const filepath = path.join(DATA_DIR, './commits.json');
+
+        // 文件不存在则非最新
+        let currentData = null;
+
+        // then-catch 模式 写法
+        // 这里必须要有个 return ， 以便把Promise的运行结果返回给调用者，并让调用者可以等待Promise运行结束
+        return Promise.resolve().then(() => {
+            return promisify(fs.access)(filepath).catch(E => {
+                console.log("commits.json non-existence");
+                // 如果这里有 reject ，会跳过下面所有的 then 直到找到下一个 catch
+                return Promise.reject(E);
+            });
+        }).then(() => {
+            return promisify(fs.readFile)(filepath).catch(err => {
+                console.log("ERROR while reading commits.json: ", err);
+                return Promise.reject(err);
+            });
+        }).then(data => {
+            currentData = JSON.parse(data.toString());
+            // 获取最新版本
+            return axios.get(url);
+        }).then(response => {
+            let newData = response.data;
+            // 是最新
+            if (currentData && currentData["short_id"] === newData[0]["short_id"]) {
+                console.log("CURRENT LOCAL SOURCE CODE IS LATEST")
+                return
+            }
+            // 非最新
+            console.log("CURRENT LOCAL SOURCE CODE IS LATEST")
+            return promisify(fs.writeFile)(filepath, JSON.stringify(newData[0])).catch(err => {
+                console.log("ERROR while writing commits.json: ", err);
+                return Promise.reject(err);
+            });
+        }).catch(E => {
+            // 上面的当前 then 链的任何一个地方发生了 reject，就会跳过剩下未执行的then直接跳到这个catch上
+            console.error(E);
+            // 继续把这个 error 以 reject 的方式抛出给调用者
+            return Promise.reject(E);
+        });
+
+    }
+
     async updateSourceRepository() {
         const url = "https://gitgud.io/Vrelnir/degrees-of-lewdity.git";
         const baseDir = path.join(ROOT, "../degrees-of-lewdity");
