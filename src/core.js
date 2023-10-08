@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const {promisify} = require('util');
 
 const axios = require('axios');
 const {ResetMode, simpleGit} = require("simple-git");
@@ -118,7 +119,7 @@ class GameSourceCode {
                 });
             } else {
                 console.log("Starting fetching repo...");
-                await git.fetch('origin', 'master', {},(err) => {
+                await git.fetch('origin', 'master', {}, (err) => {
                     if (err) {
                         console.log("ERROR while pulling repo: ", err);
                     }
@@ -217,16 +218,20 @@ class GameMod {
     }
 
     /** 所有替换内容对号入座 */
-    buildReplacePatches() {}
+    buildReplacePatches() {
+    }
 
     /** 打包 zip */
-    buildZipPackage() {}
+    buildZipPackage() {
+    }
 
     /** 下载含 Modloader 版本游戏本体 */
-    downloadModloader() {}
+    downloadModloader() {
+    }
 
     /** 下载 I18N mod */
-    downloadI18N() {}
+    downloadI18N() {
+    }
 }
 
 (async () => {
@@ -239,5 +244,5 @@ class GameMod {
     await mod.initDirs();
     await mod.initBootJson();
 
-}) ();
+})();
 
