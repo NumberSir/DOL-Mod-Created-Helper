@@ -91,66 +91,74 @@ class GameMod {
     constructor() {
         this.bootJsonDatas = {};
     }
+
     async initDirs() {
-        await fs.mkdir(MODS_DIR, () => {});
-        await fs.mkdir(RESULTS_DIR, () => {});
+        await promisify(fs.mkdir)(MODS_DIR);
+        await promisify(fs.mkdir)(RESULTS_DIR);
     }
+
     /** 编写 boot.json */
     async initBootJson() {
-        // 确定都有哪些模组
-        let modsNameList = [];
-        await fs.readdir(MODS_DIR, async (err, files) => {
+
+        try {
+
+            // 确定都有哪些模组
+            let modsNameList = [];
+            const files = await promisify(fs.readdir)(MODS_DIR);
             for (const file of files) {
-                await fs.stat(path.join(MODS_DIR, `./${file}`), async (err, stats) => {
-                    if (stats.isDirectory()) {
-                        modsNameList.push(file);
-                        console.log(`name1: ${file}`)
-                        await fs.mkdir(path.join(RESULTS_DIR, `./${file}`), () => {});
-                    }
-                });
+                const stats = await promisify(fs.stat)(path.join(MODS_DIR, `./${file}`));
+                if (stats.isDirectory()) {
+                    modsNameList.push(file);
+                    console.log(`name1: ${file}`)
+                    await promisify(fs.mkdir)(path.join(RESULTS_DIR, `./${file}`));
+                }
             }
-        });
 
-        // 初始化每个模组的 boot.json
-        for (const name of modsNameList) {
-            for (let key in BOOT_KEYS.required) {
-                this.bootJsonDatas[name][key] = BOOT_KEYS.required[key]
-            }
-            let bootJsonFlag = false;
+            // 初始化每个模组的 boot.json
+            for (const name of modsNameList) {
+                for (let key in BOOT_KEYS.required) {
+                    this.bootJsonDatas[name][key] = BOOT_KEYS.required[key]
+                }
+                let bootJsonFlag = false;
 
-            await fs.readdir(path.join(MODS_DIR, `./${name}`), async (err, files) => {
+                const files = await promisify(fs.readdir)(path.join(MODS_DIR, `./${name}`));
                 for (const file of files) {
                     if (file === "boot.json") {
                         // 填充作者写过的 boot.json 内容
 
                         bootJsonFlag = true;
-                        await fs.readFile(path.join(MODS_DIR, `./${name}/boot.json`), (err, data) => {
-                            let bootJsonDataTemp = JSON.parse(data.toString());
+                        const data = await promisify(fs.readFile)(path.join(MODS_DIR, `./${name}/boot.json`));
+                        let bootJsonDataTemp = JSON.parse(data.toString());
 
-                            // 作者填过的就直接复制过来
-                            for (let key of BOOT_KEYS.required) {
-                                if (key in bootJsonDataTemp && bootJsonDataTemp[key] !== BOOT_KEYS.required[key]) {
-                                    this.bootJsonDatas[name][key] = bootJsonDataTemp[key];
-                                }
+                        // 作者填过的就直接复制过来
+                        for (let key of BOOT_KEYS.required) {
+                            if (key in bootJsonDataTemp && bootJsonDataTemp[key] !== BOOT_KEYS.required[key]) {
+                                this.bootJsonDatas[name][key] = bootJsonDataTemp[key];
                             }
+                        }
 
-                            // 作者有写的就直接复制过来
-                            for (let key of BOOT_KEYS.optional) {
-                                if (key in bootJsonDataTemp) {
-                                    this.bootJsonDatas[name][key] = bootJsonDataTemp[key];
-                                }
+                        // 作者有写的就直接复制过来
+                        for (let key of BOOT_KEYS.optional) {
+                            if (key in bootJsonDataTemp) {
+                                this.bootJsonDatas[name][key] = bootJsonDataTemp[key];
                             }
-                        });
+                        }
                     }
                 }
 
                 if (!bootJsonFlag) {
                     console.warn(`MISSING boot.json IN ${name}!`);
                 }
-            });
+            }
+
+            await this.buildFileLists(modsNameList);
+        } catch (e) {
+            // 上面任何一个 await 到的error都会以异常的方式中断运行，跑到这里来
+            console.error(e);
+            // 接力把异常抛出去，中断调用者的运行
+            throw e;
         }
 
-        await this.buildFileLists(modsNameList);
     }
 
     /** 所有文件对号入座 */
