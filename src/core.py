@@ -152,7 +152,11 @@ class GameMod:
                 with open(DIR_MODS_ROOT / name / "boot.json", "r", encoding="utf-8") as fp:
                     data = json.load(fp)
                 self._boot_json[name]["name"] = data.get("name", name)
-                self._boot_json[name]["version"] = data.get("version", name)
+                self._boot_json[name]["version"] = data.get("version", "1.0.0")
+                self._boot_json[name]["styleFileList"] = data.get("styleFileList", [])
+                self._boot_json[name]["scriptFileList"] = data.get("scriptFileList", [])
+                self._boot_json[name]["tweeFileList"] = data.get("tweeFileList", [])
+                self._boot_json[name]["imgFileList"] = data.get("imgFileList", [])
                 for key in optional_item:
                     if data.get(key):
                         self._boot_json[name][key] = data[key]
@@ -186,7 +190,7 @@ class GameMod:
 
                     if file.endswith(".twee"):
                         self._process_passage(filepath, name)
-                        self._boot_json[name]["tweeFileList"].append(filepath_str)
+                        None if (DIR_SOURCE_REPO / filepath).exists() else self._boot_json[name]["tweeFileList"].append(filepath_str)
                     elif file.endswith(".js"):
                         self._boot_json[name]["scriptFileList"].append(filepath_str)
                     elif file.endswith(".css"):
@@ -195,9 +199,8 @@ class GameMod:
                         ".jpg", ".png", ".gif", "svg"
                     }):
                         self._boot_json[name]["imgFileList"].append(filepath_str)
-                    else:
-                        if not(addition_flag and (filepath_str in self._boot_json[name]["additionFile"])):
-                            continue
+                    elif not(addition_flag and (filepath_str in self._boot_json[name]["additionFile"])):
+                        continue
 
                     if not (DIR_RESULTS_ROOT / name / filepath).parent.exists():
                         os.makedirs((DIR_RESULTS_ROOT / name / filepath).parent, exist_ok=True)
@@ -228,6 +231,10 @@ class GameMod:
                                     DIR_SOURCE_REPO / filedir,
                                     dirs_exist_ok=True
                                 )
+
+            for list_name in {"tweeFileList", "scriptFileList", "styleFileList", "imgFileList"}:
+                self._boot_json[name][list_name] =  list(set(self._boot_json[name][list_name]))
+
             with open(DIR_RESULTS_ROOT / name / "boot.json", "w", encoding="utf-8") as fp:
                 json.dump(self._boot_json[name], fp, ensure_ascii=False, indent=2)
             logger.info(locale(Langs.ProcessResultsFinishModInfo, name=name))
@@ -249,6 +256,7 @@ class GameMod:
                 DIR_MODS_ROOT / name / filepath,
                 DIR_TEMP_ROOT / name / filepath
             )
+
             if not (DIR_RESULTS_ROOT / name / filepath).parent.exists():
                 os.makedirs((DIR_RESULTS_ROOT / name / filepath).parent, exist_ok=True)
             shutil.copyfile(
