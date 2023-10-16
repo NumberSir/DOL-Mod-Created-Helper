@@ -22,7 +22,21 @@ export function walk(dirPath, filterFunc = null) {
     return result;
 }
 
+function onlySpecificSuffixFilesFilter(filepath, suffix) {
+    return filepath.endsWith(suffix);
+}
+
 export function onlyTwineFileFilter(filepath) {
     // 只要 .twee 文件
-    return filepath.endsWith(".twee");
+    return onlySpecificSuffixFilesFilter(filepath, ".twee")
+}
+
+export function onlyJSFileFilter(filepath) {
+    // 只要 .js 文件
+    return onlySpecificSuffixFilesFilter(filepath, ".js")
+}
+
+export function onlyStyleFileFilter(filepath) {
+    // 只要 .css 文件
+    return onlySpecificSuffixFilesFilter(filepath, ".css")
 }

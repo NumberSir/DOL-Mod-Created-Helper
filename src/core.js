@@ -87,11 +87,12 @@ class ProcessGamePassage {
 
         await promisify(fs.writeFile)(samePassagesFile, JSON.stringify(samePassages)).catch(err => {return Promise.reject(err)});
         await promisify(fs.writeFile)(samePassagesNamesFile, JSON.stringify(samePassagesNames)).catch(err => {return Promise.reject(err)});
+
+        return [samePassagesNames, samePassages]
     }
 
     generateDiffFiles() {
         // TODO: 生成差异文件
-
     }
 }
 
