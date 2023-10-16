@@ -1,33 +1,28 @@
-const fs = require('fs');
-const path = require('path');
+import fs from "fs";
+import path from "path"
 
-async function walkDir(dir, name){
-    let result=[]
+export function walk(dirPath, filterFunc = null) {
+    // 递归读取目录下所有文件名/子目录
+    let result = [];
+    if (fs.existsSync(dirPath)) {
+        const files = fs.readdirSync(dirPath);
+        for (let filename of files) {
+            let filepath = path.join(dirPath, filename);
+            let stats = fs.lstatSync(filepath);
 
-    async function traverse(dir, name){
-        await fs.readdir(dir, async (err, files) => {
-            for (const file of files) {
-                let pathname = path.join(dir, file)
-                await fs.stat(pathname, async (err, stats) => {
-                    if (stats.isDirectory()) {
-                        await traverse(pathname, name);
-                    } else {
-                        pathname = pathname.split(`\\${name}\\`)[1];
-                        result.push(pathname);
-                    }
-                });
-            }
-        });
+            stats.isDirectory()
+                ? result = result.concat(walk(filepath, filterFunc))
+                : filterFunc === null || undefined
+                ? result.push(filepath)
+                : filterFunc(filepath)
+                ? result.push(filepath)
+                : null;
+        }
     }
-
-    await traverse(dir, name);
     return result;
 }
 
-module.exports.walkDir = walkDir;
-
-(async () => {
-    const path = require("path");
-    const ROOT = path.resolve(__dirname);
-    let result = await walkDir(path.join(ROOT, '../mods/Beauty_selector'), "Beauty_selector");
-}) ();
+export function onlyTwineFileFilter(filepath) {
+    // 只要 .twee 文件
+    return filepath.endsWith(".twee");
+}

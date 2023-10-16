@@ -1,10 +1,14 @@
-.idea
-data/tmp
-degrees-of-lewdity-master
-degrees-of-lewdity
-mods
-results
-scripts
+/.idea/
+/.vscode/
+/scripts/
+/node_modules/
+
+/data/tmp/
+/data/passage/
+/degrees-of-lewdity-master/
+/degrees-of-lewdity/
+/mods/
+/results/
 
 *.pyc
 *.7z

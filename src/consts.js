@@ -1,12 +1,15 @@
-const fs = require("fs");
-const path = require("path");
+import path from "path";
+import { fileURLToPath } from 'url';
+import fs from "fs";
 
-const ROOT = path.resolve(__dirname);
-const DATA_DIR = path.join(ROOT, '../data');
-const MODS_DIR = path.join(ROOT, '../mods');
-const RESULTS_DIR = path.join(ROOT, '../results');
+export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../");
+export const GAME_DIR = path.join(ROOT, "degrees-of-lewdity", "game")
+export const DATA_DIR = path.join(ROOT, 'data');
+export const PASSAGE_DATA_DIR = path.join(DATA_DIR, "passage")
+export const MODS_DIR = path.join(ROOT, 'mods');
+export const RESULTS_DIR = path.join(ROOT, 'results');
 
-const BOOT_KEYS = {
+export const BOOT_KEYS = {
     "required": {
         "name": "",
         "version": "",
@@ -28,12 +31,4 @@ const BOOT_KEYS = {
 
         "ignoreList": [],
     }
-}
-
-module.exports = {
-    ROOT: ROOT,
-    DATA_DIR: DATA_DIR,
-    MODS_DIR: MODS_DIR,
-    RESULTS_DIR: RESULTS_DIR,
-    BOOT_KEYS: BOOT_KEYS,
 }

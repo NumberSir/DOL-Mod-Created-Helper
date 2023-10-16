@@ -1,187 +1,103 @@
-const fs = require('fs');
-const path = require('path');
+import { walk, onlyTwineFileFilter } from "./utils.js";
+import { DATA_DIR, GAME_DIR, MODS_DIR, PASSAGE_DATA_DIR } from "./consts.js";
+import { promisify } from "util";
+import fs from "fs";
+import path from "path";
 
-const axios = require('axios');
-const {ResetMode, simpleGit} = require("simple-git");
-
-const {
-    ROOT, DATA_DIR, MODS_DIR, RESULTS_DIR,
-    BOOT_KEYS,
-} = require('./consts.js');
-const {walkDir} = require('./utils');
-
-class GameSourceCode {
+class ProcessGamePassage {
     async initDirs() {
-        await fs.mkdir(DATA_DIR, () => {});
-    }
-
-    async getLatestCommit() {
-        const url = "https://gitgud.io/api/v4/projects/8430/repository/commits";
-        const filepath = path.join(DATA_DIR, './commits.json');
-
-        // 文件不存在则非最新
-        let currentData = null;
-        await fs.access(filepath, err => {
-            if (err) {
-                console.log("commits.json non-existence");
-            } else {
-                fs.readFile(filepath, (err, data) => {
-                    if (err) {
-                        console.log("ERROR while reading commits.json: ", err);
-                    }
-                    currentData = JSON.parse(data.toString());
-                });
-            }
-        })
-
-        // 获取最新版本
-        await axios.get(url).then(async response => {
-            let newData = response.data;
-            // 是最新
-            if (currentData && currentData["short_id"] === newData[0]["short_id"]) {
-                console.log("CURRENT LOCAL SOURCE CODE IS LATEST")
-                return
-            }
-            // 非最新
-            console.log("CURRENT LOCAL SOURCE CODE IS LATEST")
-            fs.writeFile(filepath, JSON.stringify(newData[0]), err => {
-                if (err) {
-                    console.log("ERROR while writing commits.json: ", err);
-                }
+        for (let dir of [DATA_DIR, MODS_DIR, PASSAGE_DATA_DIR]) {
+            await promisify(fs.access)(dir).catch(err => {
+                fs.mkdirSync(dir);
             })
-        }).catch(err => {
-            console.log(err);
-        })
-    }
-
-    async updateSourceRepository() {
-        const url = "https://gitgud.io/Vrelnir/degrees-of-lewdity.git";
-        const baseDir = path.join(ROOT, "../degrees-of-lewdity");
-        const git = simpleGit(baseDir, ({method, stage, progress}) => {
-            console.log(`git.${method} ${stage} stage ${progress}% complete`)
-        });
-
-        await fs.access(baseDir, async (err) => {
-            if (err) {
-                // 不存在，直接克隆下来
-                console.log("Starting cloning repo...");
-                await git.clone(url, baseDir).then((hash) => {
-                    console.log("Repo cloned: ", hash);
-                });
-            } else {
-                console.log("Starting fetching repo...");
-                await git.fetch('origin', 'master', {},(err) => {
-                    if (err) {
-                        console.log("ERROR while pulling repo: ", err);
-                    }
-                }).then(() => {
-                    git.reset(ResetMode.HARD);
-                    console.log("Repo fetched");
-                });
-            }
-        })
-
-    }
-}
-
-
-class GameMod {
-    constructor() {
-        this.bootJsonDatas = {};
-    }
-    async initDirs() {
-        await fs.mkdir(MODS_DIR, () => {});
-        await fs.mkdir(RESULTS_DIR, () => {});
-    }
-    /** 编写 boot.json */
-    async initBootJson() {
-        // 确定都有哪些模组
-        let modsNameList = [];
-        await fs.readdir(MODS_DIR, async (err, files) => {
-            for (const file of files) {
-                await fs.stat(path.join(MODS_DIR, `./${file}`), async (err, stats) => {
-                    if (stats.isDirectory()) {
-                        modsNameList.push(file);
-                        console.log(`name1: ${file}`)
-                        await fs.mkdir(path.join(RESULTS_DIR, `./${file}`), () => {});
-                    }
-                });
-            }
-        });
-
-        // 初始化每个模组的 boot.json
-        for (const name of modsNameList) {
-            for (let key in BOOT_KEYS.required) {
-                this.bootJsonDatas[name][key] = BOOT_KEYS.required[key]
-            }
-            let bootJsonFlag = false;
-
-            await fs.readdir(path.join(MODS_DIR, `./${name}`), async (err, files) => {
-                for (const file of files) {
-                    if (file === "boot.json") {
-                        // 填充作者写过的 boot.json 内容
-
-                        bootJsonFlag = true;
-                        await fs.readFile(path.join(MODS_DIR, `./${name}/boot.json`), (err, data) => {
-                            let bootJsonDataTemp = JSON.parse(data.toString());
-
-                            // 作者填过的就直接复制过来
-                            for (let key of BOOT_KEYS.required) {
-                                if (key in bootJsonDataTemp && bootJsonDataTemp[key] !== BOOT_KEYS.required[key]) {
-                                    this.bootJsonDatas[name][key] = bootJsonDataTemp[key];
-                                }
-                            }
-
-                            // 作者有写的就直接复制过来
-                            for (let key of BOOT_KEYS.optional) {
-                                if (key in bootJsonDataTemp) {
-                                    this.bootJsonDatas[name][key] = bootJsonDataTemp[key];
-                                }
-                            }
-                        });
-                    }
-                }
-
-                if (!bootJsonFlag) {
-                    console.warn(`MISSING boot.json IN ${name}!`);
-                }
-            });
-        }
-
-        await this.buildFileLists(modsNameList);
-    }
-
-    /** 所有文件对号入座 */
-    async buildFileLists(modsNameList) {
-        console.log(`list: ${modsNameList}`)
-        for (const name of modsNameList) {
-            console.log(`name2: ${name}`);
-            await walkDir(path.join(MODS_DIR, `./${name}`), name);
         }
     }
 
-    /** 所有替换内容对号入座 */
-    buildReplacePatches() {}
+    async getAllPassages(dirPath, name) {
+        // 所有段落和段落名
+        let outputDir = path.join(PASSAGE_DATA_DIR, name)
+        await promisify(fs.access)(outputDir).catch(async () => {
+            await promisify(fs.mkdir)(outputDir).catch(err => {
+                console.error(`ERROR when mkdir of ${outputDir}`);
+                return Promise.reject(err);
+            })
+        })
+        let allPassages = [];
+        let allPassagesNames = [];
+        let allPassagesFile = path.join(outputDir, "all_passages.json");
+        let allPassagesNamesFile = path.join(outputDir, "all_passages_names.json");
 
-    /** 打包 zip */
-    buildZipPackage() {}
+        let allTwineFiles = walk(dirPath, onlyTwineFileFilter);
+        for (let file of allTwineFiles) {
+            let content = await promisify(fs.readFile)(file).catch(err => {return Promise.reject(err)});
+            let contentSlice = content.toString().split(":: ");
+            contentSlice = contentSlice.filter((item, idx) => idx % 2 !== 0);
+            // slice 中的偶数元素包含标题
 
-    /** 下载含 Modloader 版本游戏本体 */
-    downloadModloader() {}
+            for (let text of contentSlice) {
+                // 标题是第一处换行前的内容
+                text = text.replace("\r", "\n");
+                let passageName = text.split("\n")[0];
+                let passageBody = text.split("\n").slice(1, -1).join("\n");
+                passageName.endsWith("]")
+                    ? passageName = passageName.split("[")[0].trim()
+                    : null;
 
-    /** 下载 I18N mod */
-    downloadI18N() {}
+                allPassages.push({
+                    passageName: passageName,
+                    passageBody: passageBody,
+                    filepath: file,
+                    filename: path.basename(file, ".twee")
+                })
+            }
+        }
+
+        await promisify(fs.writeFile)(allPassagesFile, JSON.stringify(allPassages)).catch(err => {return Promise.reject(err)});
+        await promisify(fs.writeFile)(allPassagesNamesFile, JSON.stringify(allPassagesNames)).catch(err => {return Promise.reject(err)});
+        return [allPassagesNames, allPassages]
+    }
+
+    async getAllPassagesSource() {
+        // 源码中的所有段落和段落名
+        return await this.getAllPassages(GAME_DIR, "source");
+    }
+
+    async getAllPassagesMod(modName) {
+        // 模组中的所有段落和段落名
+        return await this.getAllPassages(path.join(MODS_DIR, modName), modName);
+    }
+
+    async getSamePassages(modName) {
+        // 获取在源码中存在的段落
+        let samePassagesNames = [];
+        let samePassages = [];
+        let outputDir = path.join(PASSAGE_DATA_DIR, modName)
+        let samePassagesFile = path.join(outputDir, "same_passages.json");
+        let samePassagesNamesFile = path.join(outputDir, "same_passages_names.json");
+
+        let [sourcePassagesNames, sourcePassages] = await this.getAllPassagesSource();
+        let [modPassagesNames, modPassages] = await this.getAllPassagesMod(modName);
+
+        for (let passage of modPassages) {
+            if (sourcePassagesNames.includes(passage.passageName)) {
+                samePassagesNames.push(passage.passageName);
+                samePassages.push(passage)
+            }
+        }
+
+        await promisify(fs.writeFile)(samePassagesFile, JSON.stringify(samePassages)).catch(err => {return Promise.reject(err)});
+        await promisify(fs.writeFile)(samePassagesNamesFile, JSON.stringify(samePassagesNames)).catch(err => {return Promise.reject(err)});
+    }
+
+    generateDiffFiles() {
+        // TODO: 生成差异文件
+
+    }
 }
 
 (async () => {
-    let game = new GameSourceCode();
-    await game.initDirs();
-    await game.getLatestCommit();
-    await game.updateSourceRepository();
-
-    let mod = new GameMod();
-    await mod.initDirs();
-    await mod.initBootJson();
-
-}) ();
+    let gameSource = new ProcessGamePassage()
+    await gameSource.initDirs();
+    await gameSource.getSamePassages("Remy Love Mod")
+})();
 
