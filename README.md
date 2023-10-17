@@ -38,14 +38,14 @@
 3. 在 `<根目录>/mods/<模组名或作者名>` 里编写你自己的模组。(初次运行请手动创建 `mods` 文件夹)。
 4. 运行 `main.py` (在命令提示符中输入 `python -m main`)。
 5. 结果会以 zip 压缩包形式生成在 `results` 文件夹中，接下来请使用 [https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 进行模组加载
-6. 如果将 `main.py` 文件中的 `auto_apply=False` 改为 `auto_apply=True` 后运行，如此运行结果将会用模组文件自动覆盖游戏源码，方便测试使用
+6. 如果将 `main.py` 中的 `REMOTE_TEST = False` 值改为 `REMOTE_TEST = True` 后运行，如此运行结果将会在每次打包完模组后自动开启本地服务器以供测试
 
 ### 本脚本的工作流程
 1. 每次运行前会自动删除 `degrees-of-lewdity-master`, `results` 文件夹，__请不要向其中放置重要文件__
 2. 从源码仓库下载游戏源码并解压到根目录
 3. 根据模组内容自动编写 `boot.json` 文件
 4. 将模组内容处理并打包为 zip 文件，可以通过 [https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 加载
-5. 如果已经下载了 ModLoader，并需要频繁测试，请将 `main.py` 中的 `REMOTE_TEST` 值修改为 `True`
+5. 如果已经下载了 ModLoader，并需要频繁测试，请将 `main.py` 中的 `REMOTE_TEST = False` 值修改为 `REMOTE_TEST = True`
    - 这样将会在每次打包完模组后自动开启本地服务器以供测试，你只需要在服务器启动后刷新浏览器即可看到改动
    - 服务器地址默认为 `http://localhost:52525`
 
