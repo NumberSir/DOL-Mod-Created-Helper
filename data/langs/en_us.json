@@ -1,7 +1,7 @@
 {
   "BaseHelperExceptionMsg": "Unknown error occurred",
   "NonExistenceSourceCodeExceptionMsg": "Source code folder non-exists",
-  "MissingBootJsonExceptionMsg": "Missing required 'info.json' file",
+  "MissingBootJsonExceptionMsg": "Missing required 'boot.json' file",
   "NonExistenceModloaderExceptionMsg": "Have not downloaded ModLoader, or put the file in the false location. Please download the latest manually in https://github.com/Lyoko-Jeremie/DoLModLoaderBuild/actions, and put the Degrees of Lewdity...html file in '<ROOT>/modloader' folder, which is in the compressed package.",
 
   "GetLatestCommitStartInfo": "===== Starting getting latest commit... - {url}",

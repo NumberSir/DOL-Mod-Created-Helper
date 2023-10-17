@@ -323,6 +323,13 @@ result = Math.floor(result * modifier);  /* 原先就有的 */
 {
   "name": "举个例子",
   "version": "1.0.0",
+  "addonPlugin": [
+    {
+      "modName": "ModLoader DoL ImageLoaderHook",
+      "addonName": "ImageLoaderAddon",
+      "modVersion": "2.0.0"
+    }
+  ],
   "dependenceInfo": [
     {
       "modName": "ModLoader DoL ImageLoaderHook",
