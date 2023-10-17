@@ -360,15 +360,15 @@ class GameMod:
             with open(DIR_RESULTS_ROOT / name / "boot.json", encoding="utf-8") as fp:
                 data = json.load(fp)
             filename = data["name"] or name
-            with ZipFile(DIR_RESULTS_ROOT / f"{filename}.zip", "w", compression=ZIP_DEFLATED, compresslevel=5) as zfp:
+            with ZipFile(DIR_RESULTS_ROOT / f"{filename}.mod.zip", "w", compression=ZIP_DEFLATED, compresslevel=5) as zfp:
                 for root, dir_list, file_list in os.walk(DIR_RESULTS_ROOT / name):
                     for file in file_list:
                         zfp.write(filename=Path(root) / file, arcname=(Path(root) / file).relative_to(DIR_RESULTS_ROOT / name))
             shutil.copyfile(
-                DIR_RESULTS_ROOT / f"{filename}.zip",
-                DIR_MODLOADER_MODS / f"{filename}.zip"
+                DIR_RESULTS_ROOT / f"{filename}.mod.zip",
+                DIR_MODLOADER_MODS / f"{filename}.mod.zip"
             )
-            mod_data.append(f"mods/{filename}.zip")
+            mod_data.append(f"mods/{filename}.mod.zip")
             logger.info(locale(Langs.PackageFinishModInfo, filename=filename))
 
         self._write_modlist_file(mod_data)
