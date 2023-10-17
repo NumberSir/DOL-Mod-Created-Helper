@@ -1,7 +1,7 @@
 from flask import Flask, send_file
 import os
 
-from ..consts import DIR_MODLOADER_ROOT, DIR_ROOT
+from ..consts import DIR_MODLOADER_ROOT
 
 app = Flask(
     "test-modloader",

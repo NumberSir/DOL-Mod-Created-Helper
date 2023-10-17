@@ -1,20 +1,25 @@
 import asyncio
-import webbrowser
+import contextlib
 import httpx
+import webbrowser
 
-from src.core import GameSourceCode, GameMod
 from src.consts import HOST, PORT
-from src.server import app
-from src.log import logger
+from src.core import GameSourceCode, GameMod
+from src.exceptions import _BaseHelperException
 from src.langs import locale, Langs
+from src.log import logger
+from src.server import app
 
-TOTAL_DROP = False  # Drop the whole `degrees-of-lewdity-master` folder or only `game`, `img` and `modules` folders
-REMOTE_TEST = False  # Test the mod in local server or not, which needs to download ModLoader manually
+
+# 是否启用本地服务器测试模组改动，使用此功能需要手动下载好 ModLoader 并如 README 所述把 "Degrees...html" 放到 "modloader" 文件夹中
+# 下载地址:
+# Test the mod in local server or not, which needs to download ModLoader manually and place the "Degrees...html" into "modloader" folder
+REMOTE_TEST = True
 
 
 async def main():
     async with httpx.AsyncClient() as client:
-        game = GameSourceCode(client, total=TOTAL_DROP)
+        game = GameSourceCode(client)
         await game.get_latest_commit()  # Judging whether download or not
         await game.download()
     game.extract()
@@ -26,9 +31,10 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
-    if REMOTE_TEST:
-        webbrowser.open(f"{HOST}:{PORT}")
-        logger.warning(locale(Langs.WarningWebBrowserInfo, host=HOST, port=PORT))
-        app.run(host=HOST, port=PORT)
+    with contextlib.suppress(_BaseHelperException):
+        asyncio.run(main())
+        if REMOTE_TEST:
+            webbrowser.open(f"{HOST}:{PORT}")
+            logger.warning(locale(Langs.WarningWebBrowserInfo, host=HOST, port=PORT))
+            app.run(host=HOST, port=PORT)
 

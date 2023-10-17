@@ -37,14 +37,14 @@ This script is designed to cooperate with [ModLoader](https://github.com/Lyoko-J
 2. To install dependencies, run `pip install -r requirements.txt` in the Terminal / Shell.
 3. Make yourt own mods in the `<ROOT>/mods/<YOUR OWN MODS' NAME>` directory. (Create `mods` folder manually.)
 4. Run `main.py` (`python -m main`).
-5. The results will be generated as a zip compressed package in the `results` folder, then please use [https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) to load the mod.
+5. The results will be generated as a zip compressed package in the `results` folder, then please use [ModLoader](https://github.com/Lyoko-Jeremie/DoLModLoaderBuild/actions/) to load the mod.
 6. If modify the code `REMOTE_TEST = False` to `REMOTE_TEST = True` in `main.py` then run, this will automatically run a local server for the purpose of testing the mod changes
 
 ### How does the script work
-1. In the beginning the script will delete `degrees-of-lewdity-master` and `results` folder, __DO NOT put important files in them.__
+1. In the beginning the script will delete `results` folder, __DO NOT put important files in it.__
 2. Then the script will download the source code of the game and extract the compressed package in the root path, by default in the `degrees-of-lewdity-master` folder.
-3. The script will make `boot.json` file (for Modloader to use).
-4. The script will process your mods' content and compress it to a zip file, which could be load through [https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader).
+3. The script will make `boot.json` file and write most of its content (for Modloader to use).
+4. The script will process your mods' content and compress it to a zip file, which could be load through [ModLoader](https://github.com/Lyoko-Jeremie/DoLModLoaderBuild/actions/).
 5. If ModLoader has been downloaded and your mods needed frequently test, please change the value `REMOTE_TEST = False` to `REMOTE_TEST = True` in the `main.py` file.
    - This will automatically run a local server for the purpose of testing the mod changes, and you only need to refresh the page in the browser after the server is running.
    - Default url is `http://localhost:52525`

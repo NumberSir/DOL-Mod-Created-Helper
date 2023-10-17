@@ -38,7 +38,7 @@ class GameSourceCode:
         self._is_latest = False
         self._download_flag = not self.FILE_GAME_ZIP.exists()
 
-        self._drop_dirs(total)
+        # self._drop_dirs(total)
         self._make_dirs()
 
     @staticmethod
@@ -96,8 +96,9 @@ class GameSourceCode:
     def extract(self):
         """Extract zip file"""
         logger.info(locale(Langs.ExtractStartInfo))
-        with ZipFile(self.FILE_GAME_ZIP, "r") as zfp:
-            zfp.extractall(DIR_ROOT)
+        if not DIR_SOURCE_REPO.exists():
+            with ZipFile(self.FILE_GAME_ZIP, "r") as zfp:
+                zfp.extractall(DIR_ROOT)
         logger.info(locale(Langs.ExtractFinishInfo))
 
     @staticmethod
@@ -243,7 +244,7 @@ class GameMod:
                                 )
 
             for list_name in {"tweeFileList", "scriptFileList", "styleFileList", "imgFileList"}:
-                self._boot_json[name][list_name] =  list(set(self._boot_json[name][list_name]))
+                self._boot_json[name][list_name] = list(set(self._boot_json[name][list_name]))
 
             with open(DIR_RESULTS_ROOT / name / "boot.json", "w", encoding="utf-8") as fp:
                 json.dump(self._boot_json[name], fp, ensure_ascii=False, indent=2)
