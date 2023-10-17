@@ -39,5 +39,5 @@
 
   "WarningWebBrowserInfo": "如果浏览器未自动启动，请手动打开 http://{host}:{port} 网页\n",
 
-  "ChunkDownloadInfo": "\t- 分块 {idx+1} / {full} 已下载"
+  "ChunkDownloadInfo": "\t- 分块 {idx} / {full} 已下载"
 }

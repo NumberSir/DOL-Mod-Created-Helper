@@ -39,5 +39,5 @@
 
   "WarningWebBrowserInfo": "If the browser doesn't launch automatically, please manually open the page http://{host}:{port}\n",
 
-  "ChunkDownloadInfo": "\t- chunk {idx+1} / {full} downloaded"
+  "ChunkDownloadInfo": "\t- chunk {idx} / {full} downloaded"
 }
