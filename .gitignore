@@ -15,4 +15,6 @@
 *.7z
 *.zip
 *.rar
+*.lock
+*-lock.json
 commits.json
