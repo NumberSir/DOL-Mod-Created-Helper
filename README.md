@@ -15,13 +15,20 @@
   * [名词解释](#名词解释)
   * [详细说明](#详细说明)
   * [boot.json](#关于-bootjson-文件)
+  * [特殊插件和前置](#关于一些特殊的-addonplugin-或-dependences)
+    * [TweeReplacer](#tweereplacer)
+    * [ReplacePatch](#replacepatch)
+    * [ImgLoaderHooker](#imageloaderhook)
+    * [CheckDoLCompressorDictionaries](#checkdolcompressordictionaries)
   * [模组文件](#关于模组文件)
   * [举例说明](#举例说明)
 ---
 
 ## 简介
 由于[原游戏引擎](https://twinery.org/)面向字符串编程的特性，以及变量文本硬编码的困难，编写模组十分困难，因此简单十分钟手搓一个帮助编写模组的小脚本。
-本脚本可以与 [ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 配合使用，使用本脚本需要一些微量的 Python 知识。
+使用本脚本需要微量 Python 知识。
+
+本脚本与 [ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 配合使用，可以在[这里](https://github.com/Lyoko-Jeremie/DoLModLoaderBuild/actions/)下载最新的发行版。
 
 ## 食用方法
 
@@ -38,9 +45,12 @@
 2. 从源码仓库下载游戏源码并解压到根目录
 3. 根据模组内容自动编写 `boot.json` 文件
 4. 将模组内容处理并打包为 zip 文件，可以通过 [https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 加载
-5. 如果 `main.py` 文件中的 `auto_apply=True`，则每次运行完将会自动用模组文件自动覆盖游戏源码
+5. 如果已经下载了 ModLoader，并需要频繁测试，请将 `main.py` 中的 `REMOTE_TEST` 值修改为 `True`
+   - 这样将会在每次打包完模组后自动开启本地服务器以供测试，你只需要在服务器启动后刷新浏览器即可看到改动
+   - 服务器地址默认为 `http://localhost:52525`
 
 ## 编写自己模组的注意事项
+
 ### 名词解释
 
 - __“段落”__
@@ -72,6 +82,10 @@
  │       ├── modules 
  │       │   └── css (参照源码目录结构放置 .css 等文件)
  │      ... 
+ ├── modloader (模组加载器，需要手动下载)
+ │   ├── mods (需要频繁测试时，会自动将打包好的模组复制到此目录)
+ │   ├── Degrees of Lewdity VERSION.mod.html (加载有 ModLoader 的游戏文件) <当 `main.py` 中的 `REMOTE_TEST` 值修改为 `True` 时，本文件是必须的>
+ │  ... 
  ├── results (处理结果，包括压缩包和文件夹)
  ├── src (代码部分)
  ├── LICENSE
@@ -83,20 +97,15 @@
 注意 `img`, `game`, `css` 三个文件夹并不是都必需的，比如你只想做类似美化的模组，就可以只有 `img` 文件夹，等等。
 
 ---
+
 ### 关于 boot.json 文件
 请在 `boot.json` 文件中填写以下信息：
 ```json
 {
   "name": "这个模组的名称",
   "version": "这个模组的版本",
-  "ignoreList": [
-    "要忽略的目录路径",
-    "要忽略的文件路径",
-    "注意未填入 ignore 的除 twee, js, css 与图片文件外的文件将全部打入压缩包中。"
-  ],
   "additionFile": [
-    "要加进压缩包的文件路径",
-    "注意当 additionFile 与 ignoreList 同时存在时，会以 additionFile 为准"
+    "要加进压缩包的文件路径"
   ],
   "scriptFileList_inject_early": [
     "提前注入的 js 脚本路径, 会在当前模组加载后立即插入到 dom 中由浏览器按照 <script> 的标注执行方式执行",
@@ -126,22 +135,225 @@
 比如一个最简单的 `boot.json` 文件应该形如:
 ```json
 {
-  "name": "EXAMPLE MOD",
+  "name": "举个例子",
   "version": "1.0.0"
 }
 ```
-
-如果这个文件 `game/only-for-test.twee` 你不想丢进压缩包，可以这样写:
+如果这个文件 `README.md` 你需要放进压缩包，可以这样写:
 ```json
 {
-  "name": "EXAMPLE MOD",
+  "name": "举个例子",
   "version": "1.0.0",
-  "ignoreList": [
-    "game/only-for-test.twee"
+  "additionFile": [
+    "README.md"
   ]
 }
 ```
+
 ---
+
+### 关于一些特殊的 addonPlugin 或 dependences
+
+#### TweeReplacer
+
+> [仓库地址](https://github.com/Lyoko-Jeremie/Degrees-of-Lewdity_Mod_TweeReplacer/)
+
+如果你的模组中有对源码中 `.twee` 文件的改动，请加入这个插件，并填写相应的参数：
+```json
+{
+  "name": "举个例子",
+  "version": "1.0.0",
+  "addonPlugin": [
+    {
+      "modName": "TweeReplacer",
+      "addonName": "TweeReplacerAddon",
+      "modVersion": "1.0.0",
+      "params": [
+        {
+          "passage": "<需要替换源码中文本所在的段落名称，即 `::` 之后的纯文本，不包括方括号 `[]` 及其中内容>",
+          "findString": "<在源码中用作参照的纯文本，标记需要修改的文本位置，和 findRegex 选一个即可>",
+          "findRegex": "<在源码中用作参照的正则表达式，标记需要修改的文本位置，和 findString 选一个即可>",
+          "replace": "<要替换为的纯文本，和 replaceFile 选一个即可>",
+          "replaceFile": "<要替换为的纯文本文件路径，和 replace 选一个即可>"
+        }
+      ]
+    }
+  ],
+  "dependenceInfo": [
+    {
+      "modName": "TweeReplacer",
+      "version": "1.0.0"
+    }
+  ]
+}
+```
+
+举例来说，如果你在 `game/04-Variables/variables-start.twee` 文件中插入了两行代码：
+```text
+...
+:: gameStartOnly [widget]   /* 所在的段落名：gameStartOnly */
+...
+    ...
+    <<set $fenghuangbuild to 0>>    /* 新加入的 */
+    <<set $fenghuang to 0>>         /* 新加入的*/
+    <<set $stray_happiness to 50>>  /* 原先就有的 */
+    ...
+```
+那么你的 `boot.json` 应该这样写：
+```json
+{
+  "name": "举个例子",
+  "version": "1.0.0",
+  "addonPlugin": [
+    {
+      "modName": "TweeReplacer",
+      "addonName": "TweeReplacerAddon",
+      "modVersion": "1.0.0",
+      "params": [
+        {
+          "passage": "gameStartOnly",
+          "findString": "<<set $stray_happiness to 50>>",
+          "replace": "<<set $fenghuangbuild to 0>>\n\t<<set $fenghuang to 0>>\n\t<<set $stray_happiness to 50>>"
+        }
+      ]
+    }
+  ],
+  "dependenceInfo": [
+    {
+      "modName": "TweeReplacer",
+      "version": "1.0.0"
+    }
+  ]
+}
+```
+
+---
+
+#### ReplacePatch
+
+> [仓库地址](https://github.com/Lyoko-Jeremie/Degrees-of-Lewdity_Mod_ReplacePatch/)
+
+如果你的模组中有对源码中 `.js` / `.css` 文件的改动，请加入这个插件，并填写相应的参数：
+```json
+{
+  "name": "举个例子",
+  "version": "1.0.0",
+  "addonPlugin": [
+    {
+      "modName": "ReplacePatcher",
+      "addonName": "ReplacePatcherAddon",
+      "modVersion": "1.0.0",
+      "params": {
+        "js": [
+          {
+            "from": "<需要替换的源码中纯文本>",
+            "to": "<要替换成的纯文本>",
+            "fileName": "<某个 js 文件名>"
+          }
+        ],
+        "css": [
+          {
+            "from": "<需要替换的源码中纯文本>",
+            "to": "<要替换成的纯文本>",
+            "fileName": "<某个 css 文件名>"
+          }
+        ],
+        "twee": [
+          {
+            "passageName": "<需要替换源码中文本所在的段落名称，即 :: 之后的纯文本，不包括方括号 [] 及其中内容>",
+            "from": "<需要替换的源码中纯文本>",
+            "to": "<要替换成的纯文本>"
+          }
+        ]
+      }
+    }
+  ],
+  "dependenceInfo": [
+    {
+      "modName": "ReplacePatcher",
+      "version": "^1.0.0"
+    }
+  ]
+}
+```
+
+举例来说，如果你在 `game/03-JavaScript/ingame.js` 文件中插入了一行代码：
+
+```text
+if (V.fox >= 6) modifier += 0.10;        /* 原先就有的 */
+if (V.fenghuang >= 6) modifier += 0.10;  /* 新加入的 */
+result = Math.floor(result * modifier);  /* 原先就有的 */
+```
+那么你的 `boot.json` 应该这样写：
+```json
+{
+  "name": "举个例子",
+  "version": "1.0.0",
+  "addonPlugin": [
+    {
+      "modName": "ReplacePatcher",
+      "addonName": "ReplacePatcherAddon",
+      "modVersion": "1.0.0",
+      "js": [
+          {
+            "fileName": "ingame.js",
+            "from": "result = Math.floor(result * modifier);",
+            "to": "if (V.fenghuang >= 6) modifier += 0.10;\nresult = Math.floor(result * modifier);"
+          }
+        ]
+    }
+  ],
+  "dependenceInfo": [
+    {
+      "modName": "TweeReplacer",
+      "version": "1.0.0"
+    }
+  ]
+}
+```
+
+---
+
+#### ImageLoaderHook
+
+> [仓库地址](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader-ImgLoaderHooker/)
+
+如果你的模组中有图片需要加载，请加入这个插件：
+```json
+{
+  "name": "举个例子",
+  "version": "1.0.0",
+  "dependenceInfo": [
+    {
+      "modName": "ModLoader DoL ImageLoaderHook",
+      "version": "^2.0.0"
+    }
+  ]
+}
+```
+
+---
+
+#### CheckDoLCompressorDictionaries
+
+> [仓库地址](https://github.com/Lyoko-Jeremie/Degrees-of-Lewdity_Mod_CheckDoLCompressorDictionaries/)
+
+这个插件仅用来检测 `DoLCompressorDictionaries` 是否被修改，因为若有修改将可能会造成存档不兼容
+```json
+{
+  "name": "举个例子",
+  "version": "1.0.0",
+  "dependenceInfo": [
+    {
+      "modName": "CheckDoLCompressorDictionaries",
+      "version": "^1.0.1"
+    }
+  ]
+}
+```
+
+---
+
 ### 关于模组文件
 请遵循以下格式：
    1. 对于完全新建、自创的内容，比如：`新建一个段落`, `新建一个.twee文件`、`新建一张衣服的图片文件`等，请注意不要和原游戏内容重名。

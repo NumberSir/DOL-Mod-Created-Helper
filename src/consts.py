@@ -13,7 +13,7 @@ DIR_MODS_ROOT = DIR_ROOT / "mods"
 DIR_RESULTS_ROOT = DIR_ROOT / "results"
 DIR_TEMP_ROOT = DIR_DATA_ROOT / "tmp"
 DIR_SOURCE_REPO = DIR_ROOT / "degrees-of-lewdity-master"
-DIR_MODLOADER_ROOT = DIR_ROOT / "ModLoader"
+DIR_MODLOADER_ROOT = DIR_ROOT / "modloader"
 DIR_MODLOADER_MODS = DIR_MODLOADER_ROOT / "mods"
 
 """ LANGS """

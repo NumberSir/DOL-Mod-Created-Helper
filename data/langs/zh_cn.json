@@ -2,7 +2,7 @@
   "BaseHelperExceptionMsg": "发生未知错误",
   "NonExistenceSourceCodeExceptionMsg": "游戏源码文件夹不存在",
   "MissingBootJsonExceptionMsg": "缺少必需的 'info.json' 文件",
-  "NonExistenceModloaderExceptionMsg": "未下载 ModLoader 或位置错误！请前往 https://github.com/Lyoko-Jeremie/DoLModLoaderBuild/actions 下载最新版 ModLoader 并将压缩包中的 Degrees of Lewdity...html 文件放置于 '根目录/ModLoader' 文件夹下",
+  "NonExistenceModloaderExceptionMsg": "未下载 ModLoader 或位置错误！请前往 https://github.com/Lyoko-Jeremie/DoLModLoaderBuild/actions 下载最新版 ModLoader 并将压缩包中的 Degrees of Lewdity...html 文件放置于 '<根目录>/modloader' 文件夹下",
 
   "GetLatestCommitStartInfo": "===== 开始获取最新仓库版本... - {url}",
   "GetLatestCommitMsgInfo": "\t- 最新仓库版本: {latest_commit}\n",
