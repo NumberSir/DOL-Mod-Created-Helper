@@ -4,9 +4,10 @@ from enum import Enum
 
 class Langs(Enum):
     # exceptions
-    BaseHelperExceptionMsg = 0
-    NonExistenceSourceCodeExceptionMsg = 1
-    MissingInfoJsonExceptionMsg = 2
+    BaseHelperExceptionMsg = 100
+    NonExistenceSourceCodeExceptionMsg = 101
+    MissingBootJsonExceptionMsg = 102
+    NonExistenceModloaderExceptionMsg = 103
 
     # core
     GetLatestCommitStartInfo = 3
@@ -41,6 +42,12 @@ class Langs(Enum):
     DropResultsDirsFinishInfo = 25
 
     ProcessPassageFinishInfo = 26
+
+    # main
+    WarningWebBrowserInfo = 27
+
+    # utils
+    ChunkDownloadInfo = 50
 
 
 def locale(raw: Langs | str, **kwargs):

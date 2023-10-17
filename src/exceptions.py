@@ -16,17 +16,37 @@ class _BaseHelperException(Exception):
         return self.__str__()
 
 
+class DownloadError(_BaseHelperException):
+    def __init__(self):
+        super().__init__(
+            msg=locale(Langs.DownloadErrorInfo)
+        )
+
+
 class NonExistenceSourceCodeException(_BaseHelperException):
-    def __init__(self, msg=locale(Langs.NonExistenceSourceCodeExceptionMsg), detail: Path = None):
-        super().__init__(msg, detail)
+    def __init__(self):
+        super().__init__(
+            msg=locale(Langs.NonExistenceSourceCodeExceptionMsg)
+        )
 
 
 class MissingBootJsonException(_BaseHelperException):
-    def __init__(self, msg=locale(Langs.MissingInfoJsonExceptionMsg), detail: str = None):
-        super().__init__(msg, detail)
+    def __init__(self):
+        super().__init__(
+            msg=locale(Langs.MissingBootJsonExceptionMsg)
+        )
+
+
+class NonExistenceModloaderException(_BaseHelperException):
+    def __init__(self):
+        super().__init__(
+            msg=locale(Langs.NonExistenceModloaderExceptionMsg)
+        )
 
 
 __all__ = [
+    "DownloadError",
     "NonExistenceSourceCodeException",
-    "MissingBootJsonException"
+    "MissingBootJsonException",
+    "NonExistenceModloaderException"
 ]

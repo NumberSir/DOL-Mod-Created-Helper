@@ -3,6 +3,7 @@ from aiofiles import open as aopen
 import httpx
 
 from .log import logger
+from .langs import locale, Langs
 
 
 async def chunk_split(filesize: int, chunk: int = 64) -> list[list[int]]:
@@ -27,7 +28,7 @@ async def chunk_download(url: str, client: httpx.AsyncClient, start: int, end: i
     async with aopen(save_path, "rb+") as fp:
         await fp.seek(start)
         await fp.write(response.content)
-        logger.info(f"\t- chunk {idx + 1} / {full} downloaded")
+        logger.info(locale(Langs.ChunkDownloadInfo, idx=idx, full=full))
 
 
 __all__ = [

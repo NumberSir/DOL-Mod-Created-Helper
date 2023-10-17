@@ -83,7 +83,7 @@ class GameSourceCode:
                 break
         if not flag:
             logger.error(locale(Langs.DownloadErrorInfo))
-            raise
+            raise DownloadError
 
         tasks = [
             chunk_download(
@@ -114,17 +114,26 @@ class GameSourceCode:
 
 
 class GameMod:
-    def __init__(self):
+    def __init__(self, test_flag: bool = False):
         self._boot_json: dict[str, dict[str, list]] = {}
 
         self._drop_dirs()
         self._make_dirs()
+        if test_flag:
+            self.check_environment()
 
     @staticmethod
     def _make_dirs():
         """Making directories"""
         os.makedirs(DIR_RESULTS_ROOT, exist_ok=True)
         os.makedirs(DIR_TEMP_ROOT, exist_ok=True)
+        os.makedirs(DIR_MODLOADER_MODS, exist_ok=True)
+
+    def check_environment(self):
+        """Check if ModLoader has been installed"""
+        if not any(file.endswith(".html") for file in os.listdir(DIR_MODLOADER_ROOT)):
+            logger.error(locale(Langs.NonExistenceModloaderExceptionMsg))
+            raise NonExistenceModloaderException
 
     def build_boot_json(self):
         """For ModLoader"""
@@ -162,6 +171,7 @@ class GameMod:
                         self._boot_json[name][key] = data[key]
                 break
             if not boot_flag:
+                logger.error(locale(Langs.MissingBootJsonExceptionMsg))
                 raise MissingBootJsonException
         logger.info(locale(Langs.BuildBootJsonFinishedInfo))
 
@@ -337,10 +347,11 @@ class GameMod:
             fp.writelines(source_lines)
         logger.info(locale(Langs.ProcessPassageFinishInfo, filepath=filepath))
 
-    @staticmethod
-    def package():
+    def package(self):
         """Package the mod into zip file"""
         logger.info(locale(Langs.PackageStartInfo))
+
+        mod_data = []
         for name in os.listdir(DIR_RESULTS_ROOT):
             if not os.listdir(DIR_RESULTS_ROOT / name):
                 logger.warning(locale(Langs.PackageEmptyModInfo, name=name))
@@ -352,8 +363,22 @@ class GameMod:
                 for root, dir_list, file_list in os.walk(DIR_RESULTS_ROOT / name):
                     for file in file_list:
                         zfp.write(filename=Path(root) / file, arcname=(Path(root) / file).relative_to(DIR_RESULTS_ROOT / name))
+            shutil.copyfile(
+                DIR_RESULTS_ROOT / f"{filename}.zip",
+                DIR_MODLOADER_MODS / f"{filename}.zip"
+            )
+            mod_data.append(f"mods/{filename}.zip")
             logger.info(locale(Langs.PackageFinishModInfo, filename=filename))
+
+        self._write_modlist_file(mod_data)
         logger.info(locale(Langs.PackageFinishInfo))
+
+    @staticmethod
+    def _write_modlist_file(mod_data: list[str]):
+        """For ModLoader loading mods from remote server"""
+        modlist_filepath = DIR_MODLOADER_ROOT / "modList.json"
+        with open(modlist_filepath, "w", encoding="utf-8") as fp:
+            json.dump(mod_data, fp, ensure_ascii=False)
 
     @staticmethod
     def _drop_dirs():
@@ -362,6 +387,7 @@ class GameMod:
         shutil.rmtree(DIR_RESULTS_ROOT, ignore_errors=True)
         shutil.rmtree(DIR_TEMP_ROOT, ignore_errors=True)
         logger.info(locale(Langs.DropResultsDirsFinishInfo))
+
 
 
 __all__ = [
