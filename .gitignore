@@ -2,6 +2,7 @@
 /.vscode/
 /scripts/
 /node_modules/
+/modloader/
 
 /data/tmp/
 /data/passage/
