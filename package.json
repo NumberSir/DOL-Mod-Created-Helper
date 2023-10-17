@@ -2,16 +2,14 @@
   "name": "dol-mod-create-helper-ts",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
   "scripts": {
-    "test-walk": "node src/core.js"
+    "ts:build": "tsc -p ./src/tsconfig.json"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
+    "@types/node": "^20.6.0",
     "axios": "^1.5.1",
-    "simple-git": "^3.20.0",
-    "@types/node": "^20.6.0"
-  }
+    "simple-git": "^3.20.0"
+  },
+  "packageManager": "yarn@3.4.1"
 }
