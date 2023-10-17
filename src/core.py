@@ -210,7 +210,7 @@ class GameMod:
                         ".jpg", ".png", ".gif", "svg"
                     }):
                         self._boot_json[name]["imgFileList"].append(filepath_str)
-                    elif not(addition_flag and (filepath_str in self._boot_json[name]["additionFile"])):
+                    elif not(addition_flag and (filepath_str in self._boot_json[name].get("additionFile"))):
                         continue
 
                     if not (DIR_RESULTS_ROOT / name / filepath).parent.exists():
