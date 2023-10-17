@@ -320,6 +320,13 @@ If there are any images in your mod, please add this dependence:
 {
   "name": "EXAMPLE MOD",
   "version": "1.0.0",
+  "addonPlugin": [
+    {
+      "modName": "ModLoader DoL ImageLoaderHook",
+      "addonName": "ImageLoaderAddon",
+      "modVersion": "2.0.0"
+    }
+  ],
   "dependenceInfo": [
     {
       "modName": "ModLoader DoL ImageLoaderHook",

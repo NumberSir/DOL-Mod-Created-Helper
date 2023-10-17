@@ -12,7 +12,6 @@ from src.server import app
 
 
 # 是否启用本地服务器测试模组改动，使用此功能需要手动下载好 ModLoader 并如 README 所述把 "Degrees...html" 放到 "modloader" 文件夹中
-# 下载地址:
 # Test the mod in local server or not, which needs to download ModLoader manually and place the "Degrees...html" into "modloader" folder
 REMOTE_TEST = True
 
