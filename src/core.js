@@ -4,9 +4,9 @@ import {
     DIR_GAME_TWINE,
     DIR_MODS,
     DIR_DATA_PASSAGE,
-    DIR_GAME_ROOT,
+    DIR_GAME_REPO_ROOT,
     URL_GAME_REPO_REMOTE,
-    DIR_MODLOADER_ROOT
+    DIR_MODLOADER_BUILT_ROOT, DIR_REPOSITORY
 } from "./consts.js";
 import {promisify} from "util";
 import fs from "fs";
@@ -15,24 +15,13 @@ import {simpleGit}  from "simple-git";
 
 class PreProcessGit {
     // 仓库相关
-    async initDirs() {
-        for (let dir of [
-            DIR_GAME_ROOT,
-            DIR_MODLOADER_ROOT
-        ]) {
-            await promisify(fs.access)(dir).catch(err => {
-                fs.mkdirSync(dir);
-            });
-        }
-    }
-
     async initGit() {
         const progress = ({method, stage, progress}) => {
             // checkout, clone, fetch, pull, push 可以查看进度
             console.log(`[PROGESS] git.${method} ${stage} stage ${progress}% complete`);
         };
         const options = {
-            baseDir: DIR_GAME_ROOT.toString(),
+            baseDir: process.cwd(),
             binary: 'git',
             maxConcurrentProcesses: 8,
             trimmed: false,
@@ -48,23 +37,23 @@ class PreProcessGit {
         };
 
         let git = simpleGit(options);
-        await git.addRemote('master', URL_GAME_REPO_REMOTE).catch(() => {
-            console.warn("[WARN] game repo remote already exists!");
-        });
+        let status = await git.subModule()
+        console.log("status: ", status)
+        await git.submoduleUpdate()
+        // await git.addRemote('master', URL_GAME_REPO_REMOTE).catch(() => {
+        //     console.warn("[WARN] game repo remote already exists!");
+        // });
 
-        let files = await promisify(fs.readdir)(DIR_GAME_ROOT);
-        if (!files) {
-            await git.clone(URL_GAME_REPO_REMOTE, DIR_GAME_ROOT).catch((err) => {
-                console.warn("[ERROR] ERROR when cloning the game repo: ", err);
-            });
-        } else {
-            await git.pull(URL_GAME_REPO_REMOTE, 'master').catch((err) => {
-                console.warn("[ERROR] ERROR when pulling the game repo: ", err);
-            });
-        }
-
-
-
+        // let files = await promisify(fs.readdir)(DIR_GAME_REPO_ROOT);
+        // if (!files) {
+        //     await git.clone(URL_GAME_REPO_REMOTE, DIR_GAME_REPO_ROOT).catch((err) => {
+        //         console.warn("[ERROR] ERROR when cloning the game repo: ", err);
+        //     });
+        // } else {
+        //     await git.pull(URL_GAME_REPO_REMOTE, 'master').catch((err) => {
+        //         console.warn("[ERROR] ERROR when pulling the game repo: ", err);
+        //     });
+        // }
     }
 
     async getLatestCommits() {
@@ -225,5 +214,8 @@ class ProcessGamePassage {
     // let gamePassage = new ProcessGamePassage()
     // await gamePassage.initDirs();
     // await gamePassage.getSamePassagesMod("Chololate-Factory-mod")
+
+    let processGit = new PreProcessGit();
+    await processGit.initGit();
 })();
 

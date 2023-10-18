@@ -4,9 +4,11 @@ import fs from "fs";
 
 /** PATHS */
 export const DIR_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../");
-export const DIR_GAME_ROOT = path.join(DIR_ROOT, "degrees-of-lewdity")
-export const DIR_MODLOADER_ROOT = path.join(DIR_ROOT, "modloader")
-export const DIR_GAME_TWINE = path.join(DIR_GAME_ROOT, "game");
+export const DIR_REPOSITORY = path.join(DIR_ROOT, "repository")
+export const DIR_GAME_REPO_ROOT = path.join(DIR_REPOSITORY, "degrees-of-lewdity")
+export const DIR_MODLOADER_REPO_ROOT = path.join(DIR_REPOSITORY, "sugarcube-2-ModLoader")
+export const DIR_MODLOADER_BUILT_ROOT = path.join(DIR_ROOT, "modloader")
+export const DIR_GAME_TWINE = path.join(DIR_GAME_REPO_ROOT, "game");
 export const DIR_DATA = path.join(DIR_ROOT, 'data');
 export const DIR_DATA_PASSAGE = path.join(DIR_DATA, "passage");
 export const DIR_DATA_PASSAGE_SOURCE = path.join(DIR_DATA_PASSAGE, "source");
