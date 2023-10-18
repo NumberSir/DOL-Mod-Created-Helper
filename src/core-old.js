@@ -5,7 +5,7 @@ const axios = require('axios');
 const {ResetMode, simpleGit} = require("simple-git");
 
 const {
-    ROOT, DATA_DIR, MODS_DIR, RESULTS_DIR,
+    ROOT_DIR, DATA_DIR, MODS_DIR, RESULTS_DIR,
     BOOT_KEYS,
 } = require('./consts.js');
 const {walkDir} = require('./utils');
@@ -56,7 +56,7 @@ class GameSourceCode {
 
     async updateSourceRepository() {
         const url = "https://gitgud.io/Vrelnir/degrees-of-lewdity.git";
-        const baseDir = path.join(ROOT, "../degrees-of-lewdity");
+        const baseDir = path.join(ROOT_DIR, "../degrees-of-lewdity");
         const git = simpleGit(baseDir, ({method, stage, progress}) => {
             console.log(`git.${method} ${stage} stage ${progress}% complete`)
         });
