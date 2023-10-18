@@ -1,35 +1,116 @@
-import { walk, onlyTwineFileFilter } from "./utils.js";
-import { DATA_DIR, GAME_DIR, MODS_DIR, PASSAGE_DATA_DIR } from "./consts.js";
-import { promisify } from "util";
+import {walk, onlyTwineFileFilter} from "./utils.js";
+import {
+    DIR_DATA,
+    DIR_GAME_TWINE,
+    DIR_MODS,
+    DIR_DATA_PASSAGE,
+    DIR_GAME_ROOT,
+    URL_GAME_REPO_REMOTE,
+    DIR_MODLOADER_ROOT
+} from "./consts.js";
+import {promisify} from "util";
 import fs from "fs";
 import path from "path";
+import {simpleGit}  from "simple-git";
 
-class ProcessGamePassage {
+class PreProcessGit {
+    // 仓库相关
     async initDirs() {
         for (let dir of [
-            DATA_DIR,
-            MODS_DIR,
-            PASSAGE_DATA_DIR
+            DIR_GAME_ROOT,
+            DIR_MODLOADER_ROOT
         ]) {
             await promisify(fs.access)(dir).catch(err => {
                 fs.mkdirSync(dir);
-            })
+            });
         }
     }
 
-    async dropDirs() {
+    async initGit() {
+        const progress = ({method, stage, progress}) => {
+            // checkout, clone, fetch, pull, push 可以查看进度
+            console.log(`[PROGESS] git.${method} ${stage} stage ${progress}% complete`);
+        };
+        const options = {
+            baseDir: DIR_GAME_ROOT.toString(),
+            binary: 'git',
+            maxConcurrentProcesses: 8,
+            trimmed: false,
+
+            progress,
+            completion: {
+                onExit: 50,
+                onClose: true
+            },
+            timeout: {
+                block: 2000  // ms
+            }
+        };
+
+        let git = simpleGit(options);
+        await git.addRemote('master', URL_GAME_REPO_REMOTE).catch(() => {
+            console.warn("[WARN] game repo remote already exists!");
+        });
+
+        let files = await promisify(fs.readdir)(DIR_GAME_ROOT);
+        if (!files) {
+            await git.clone(URL_GAME_REPO_REMOTE, DIR_GAME_ROOT).catch((err) => {
+                console.warn("[ERROR] ERROR when cloning the game repo: ", err);
+            });
+        } else {
+            await git.pull(URL_GAME_REPO_REMOTE, 'master').catch((err) => {
+                console.warn("[ERROR] ERROR when pulling the game repo: ", err);
+            });
+        }
+
+
+
+    }
+
+    async getLatestCommits() {
+        // 决定是否要更新
+    }
+}
+
+class PreProcessGameSourceCode {
+    // 游戏源码相关
+}
+
+class PreProcessModLoader {
+    // ModLoader 相关
+}
+
+class ProcessGamePassage {
+    // 为下文的自动填写 replace-addon 做准备
+    async initDirs() {
+        for (let dir of [
+            DIR_DATA,
+            DIR_MODS,
+            DIR_DATA_PASSAGE
+        ]) {
+            await promisify(fs.access)(dir).catch(err => {
+                fs.mkdirSync(dir);
+            });
+        }
+    }
+
+    async dropDirs(filterFunc = null) {
         for (let dir of [
 
         ]) {
             await promisify(fs.access)(dir).then(() => {
-                fs.rmdirSync(dir)
-            })
+                filterFunc === null || undefined
+                    ? fs.rmdirSync(dir)
+                    : filterFunc(dir)
+                    ? fs.rmdirSync(dir)
+                    : null;
+            });
         }
     }
 
     async getAllPassages(dirPath, name) {
         // 所有段落和段落名
-        let outputDir = path.join(PASSAGE_DATA_DIR, name);
+        let outputDir = path.join(DIR_DATA_PASSAGE, name);
         await promisify(fs.access)(outputDir).catch(async () => {
             await promisify(fs.mkdir)(outputDir).catch(err => {
                 console.error(`ERROR when mkdir of ${outputDir}`);
@@ -53,16 +134,16 @@ class ProcessGamePassage {
                 text = text.replace("\r", "\n");
                 let passageName = text.split("\n")[0];
                 let passageBody = text.split("\n").slice(1, -1).join("\n");
+                let passageFull = `:: ${passageName}\n${passageBody}`;
                 passageName.endsWith("]")
                     ? passageName = passageName.split("[")[0].trim()
                     : null;
-
-                passageName = passageName.replace('/', '_SLASH_');
 
                 allPassagesNames.push(passageName);
                 allPassages.push({
                     passageName: passageName,
                     passageBody: passageBody,
+                    passageFull: passageFull,
                     filepath: file,
                     filename: path.basename(file, ".twee")
                 })
@@ -77,14 +158,14 @@ class ProcessGamePassage {
 
     async getAllPassagesSource() {
         // 源码中的所有段落和段落名
-        let [allPassagesNames, allPassages] = await this.getAllPassages(GAME_DIR, "source");
+        let [allPassagesNames, allPassages] = await this.getAllPassages(DIR_GAME_TWINE, "source");
         await this.writePassagesSource(allPassages);
         return [allPassagesNames, allPassages]
     }
 
     async getAllPassagesMod(modName) {
         // 模组中的所有段落和段落名
-        let [allPassagesNames, allPassages] = await this.getAllPassages(path.join(MODS_DIR, modName), modName);
+        let [allPassagesNames, allPassages] = await this.getAllPassages(path.join(DIR_MODS, modName), modName);
         await this.writePassagesMod(allPassages, modName);
         return [allPassagesNames, allPassages]
     }
@@ -93,7 +174,7 @@ class ProcessGamePassage {
         // 获取在源码中存在的段落
         let samePassagesNames = [];
         let samePassages = [];
-        let outputDir = path.join(PASSAGE_DATA_DIR, modName)
+        let outputDir = path.join(DIR_DATA_PASSAGE, modName)
         let samePassagesFile = path.join(outputDir, "same_passages.json");
         let samePassagesNamesFile = path.join(outputDir, "same_passages_names.json");
 
@@ -115,7 +196,7 @@ class ProcessGamePassage {
 
     async writePassages(allPassages, name) {
         // 分开写成文件
-        let outputDir = path.join(PASSAGE_DATA_DIR, name, "all_passages");
+        let outputDir = path.join(DIR_DATA_PASSAGE, name, "all_passages");
         await promisify(fs.access)(outputDir).catch(async () => {
             await promisify(fs.mkdir)(outputDir).catch(err => {
                 console.error(`ERROR when mkdir of ${outputDir}`);
@@ -124,8 +205,9 @@ class ProcessGamePassage {
         })
 
         for (let passage of allPassages) {
+            passage.passageName = passage.passageName.replace('/', '_SLASH_');
             let passageFile = path.join(outputDir, `${passage.passageName}.twee`);
-            await promisify(fs.writeFile)(passageFile, passage.passageBody).catch(err => {return Promise.reject(err)});
+            await promisify(fs.writeFile)(passageFile, passage.passageFull).catch(err => {return Promise.reject(err)});
         }
     }
 
@@ -136,15 +218,12 @@ class ProcessGamePassage {
     async writePassagesMod(allPassages, modName) {
         return await this.writePassages(allPassages, modName)
     }
-
-    generateDiffFiles() {
-        // TODO: 生成差异文件
-    }
 }
 
+
 (async () => {
-    let gameSource = new ProcessGamePassage()
-    await gameSource.initDirs();
-    await gameSource.getSamePassagesMod("Chololate-Factory-mod")
+    // let gamePassage = new ProcessGamePassage()
+    // await gamePassage.initDirs();
+    // await gamePassage.getSamePassagesMod("Chololate-Factory-mod")
 })();
 

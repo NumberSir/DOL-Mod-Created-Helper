@@ -5,19 +5,19 @@ const axios = require('axios');
 const {ResetMode, simpleGit} = require("simple-git");
 
 const {
-    ROOT_DIR, DATA_DIR, MODS_DIR, RESULTS_DIR,
+    DIR_ROOT, DIR_DATA, DIR_MODS, DIR_RESULTS,
     BOOT_KEYS,
 } = require('./consts.js');
 const {walkDir} = require('./utils');
 
 class GameSourceCode {
     async initDirs() {
-        await fs.mkdir(DATA_DIR, () => {});
+        await fs.mkdir(DIR_DATA, () => {});
     }
 
     async getLatestCommit() {
         const url = "https://gitgud.io/api/v4/projects/8430/repository/commits";
-        const filepath = path.join(DATA_DIR, './commits.json');
+        const filepath = path.join(DIR_DATA, './commits.json');
 
         // 文件不存在则非最新
         let currentData = null;
@@ -56,7 +56,7 @@ class GameSourceCode {
 
     async updateSourceRepository() {
         const url = "https://gitgud.io/Vrelnir/degrees-of-lewdity.git";
-        const baseDir = path.join(ROOT_DIR, "../degrees-of-lewdity");
+        const baseDir = path.join(DIR_ROOT, "../degrees-of-lewdity");
         const git = simpleGit(baseDir, ({method, stage, progress}) => {
             console.log(`git.${method} ${stage} stage ${progress}% complete`)
         });
@@ -90,20 +90,20 @@ class GameMod {
         this.bootJsonDatas = {};
     }
     async initDirs() {
-        await fs.mkdir(MODS_DIR, () => {});
-        await fs.mkdir(RESULTS_DIR, () => {});
+        await fs.mkdir(DIR_MODS, () => {});
+        await fs.mkdir(DIR_RESULTS, () => {});
     }
     /** 编写 boot.json */
     async initBootJson() {
         // 确定都有哪些模组
         let modsNameList = [];
-        await fs.readdir(MODS_DIR, async (err, files) => {
+        await fs.readdir(DIR_MODS, async (err, files) => {
             for (const file of files) {
-                await fs.stat(path.join(MODS_DIR, `./${file}`), async (err, stats) => {
+                await fs.stat(path.join(DIR_MODS, `./${file}`), async (err, stats) => {
                     if (stats.isDirectory()) {
                         modsNameList.push(file);
                         console.log(`name1: ${file}`)
-                        await fs.mkdir(path.join(RESULTS_DIR, `./${file}`), () => {});
+                        await fs.mkdir(path.join(DIR_RESULTS, `./${file}`), () => {});
                     }
                 });
             }
@@ -116,13 +116,13 @@ class GameMod {
             }
             let bootJsonFlag = false;
 
-            await fs.readdir(path.join(MODS_DIR, `./${name}`), async (err, files) => {
+            await fs.readdir(path.join(DIR_MODS, `./${name}`), async (err, files) => {
                 for (const file of files) {
                     if (file === "boot.json") {
                         // 填充作者写过的 boot.json 内容
 
                         bootJsonFlag = true;
-                        await fs.readFile(path.join(MODS_DIR, `./${name}/boot.json`), (err, data) => {
+                        await fs.readFile(path.join(DIR_MODS, `./${name}/boot.json`), (err, data) => {
                             let bootJsonDataTemp = JSON.parse(data.toString());
 
                             // 作者填过的就直接复制过来
@@ -156,7 +156,7 @@ class GameMod {
         console.log(`list: ${modsNameList}`)
         for (const name of modsNameList) {
             console.log(`name2: ${name}`);
-            await walkDir(path.join(MODS_DIR, `./${name}`), name);
+            await walkDir(path.join(DIR_MODS, `./${name}`), name);
         }
     }
 

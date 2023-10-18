@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path"
 
+import {DIR_DATA_PASSAGE_SOURCE} from "./consts.js";
+
 export function walk(dirPath, filterFunc = null) {
     // 递归读取目录下所有文件名/子目录
     let result = [];
@@ -39,4 +41,9 @@ export function onlyJSFileFilter(filepath) {
 export function onlyStyleFileFilter(filepath) {
     // 只要 .css 文件
     return onlySpecificSuffixFilesFilter(filepath, ".css")
+}
+
+export function noDropSourcePassageDirFilter(dirpath) {
+    // 删目录时别把源码的段落给删了
+    return dirpath !== DIR_DATA_PASSAGE_SOURCE;
 }
