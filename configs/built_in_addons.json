@@ -1,0 +1,7 @@
+[
+  "ModLoader",
+  "ModLoader DoL ImageLoaderHook",
+  "TweeReplacer",
+  "ReplacePatcher",
+  "CheckDoLCompressorDictionaries"
+]

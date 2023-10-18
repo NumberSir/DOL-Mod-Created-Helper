@@ -353,6 +353,7 @@ class GameMod:
         logger.info(locale(Langs.PackageStartInfo))
 
         mod_data = []
+        mod_info = {}
         for name in os.listdir(DIR_RESULTS_ROOT):
             if not os.listdir(DIR_RESULTS_ROOT / name):
                 logger.warning(locale(Langs.PackageEmptyModInfo, name=name))
@@ -369,10 +370,23 @@ class GameMod:
                 DIR_MODLOADER_MODS / f"{filename}.mod.zip"
             )
             mod_data.append(f"mods/{filename}.mod.zip")
+            mod_info[filename] = {
+                "name": filename,
+                "version": data["version"],
+                "dependence": data["dependenceInfo"]
+            }
+
             logger.info(locale(Langs.PackageFinishModInfo, filename=filename))
 
+        self.build_loading_orders(mod_info)
         self._write_modlist_file(mod_data)
         logger.info(locale(Langs.PackageFinishInfo))
+
+    def build_loading_orders(self, mod_info: dict):
+        ...
+
+    def _build_dependence_relations(self):
+        """for changing loading order"""
 
     @staticmethod
     def _write_modlist_file(mod_data: list[str]):
@@ -381,6 +395,12 @@ class GameMod:
         with open(modlist_filepath, "w", encoding="utf-8") as fp:
             json.dump(mod_data, fp, ensure_ascii=False)
 
+    def _change_loading_order(self):
+        """dependences"""
+        with open(DIR_CONFIGS_ROOT / "built_in_addons.json", "r", encoding="utf-8") as fp:
+            built_in_addons = json.load(fp)
+
+
     @staticmethod
     def _drop_dirs():
         """Cleaning"""
@@ -388,7 +408,6 @@ class GameMod:
         shutil.rmtree(DIR_RESULTS_ROOT, ignore_errors=True)
         shutil.rmtree(DIR_TEMP_ROOT, ignore_errors=True)
         logger.info(locale(Langs.DropResultsDirsFinishInfo))
-
 
 
 __all__ = [
