@@ -1,6 +1,5 @@
 import path from "path";
 import { fileURLToPath } from 'url';
-import fs from "fs";
 
 /** PATHS */
 export const DIR_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../");
@@ -46,3 +45,45 @@ export const BOOT_KEYS = {
         "ignoreList": [],
     }
 }
+export const DEFAULT_DEPENDENCE_INFO = [
+    {
+      "modName": "ModLoader",
+      "version": ">=1.6.4"
+    },
+    {
+      "modName": "TweeReplacer",
+      "version": ">=1.1.0"
+    },
+    {
+      "modName": "ReplacePatcher",
+      "version": ">=1.1.0"
+    },
+    {
+      "modName": "ModLoader DoL ImageLoaderHook",
+      "version": ">=2.3.0"
+    }
+]
+export const DEFAULT_ADDON_PLUGIN = [
+    {
+      "modName": "TweeReplacer",
+      "addonName": "TweeReplacerAddon",
+      "modVersion": "1.1.0",
+      "params": []
+    },
+    {
+      "modName": "ReplacePatcher",
+      "addonName": "ReplacePatcherAddon",
+      "modVersion": "1.1.0",
+      "params": {
+          "js": [],
+          "css": [],
+          "twee": []
+      }
+    },
+    {
+      "modName": "ModLoader DoL ImageLoaderHook",
+      "addonName": "ImageLoaderAddon",
+      "modVersion": "2.3.0",
+      "params": []
+    }
+]
