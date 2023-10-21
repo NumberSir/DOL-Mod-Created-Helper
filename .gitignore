@@ -3,6 +3,7 @@
 /scripts/
 /node_modules/
 /modloader/
+/.yarn/
 
 /data/tmp/
 /data/passage/
