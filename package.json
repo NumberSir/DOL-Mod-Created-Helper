@@ -9,8 +9,10 @@
   "keywords": [],
   "dependencies": {
     "@types/node": "^20.6.0",
+    "anywhere": "^1.6.0",
     "axios": "^1.5.1",
     "jszip": "^3.10.1",
+    "os-locale": "^6.0.2",
     "simple-git": "^3.20.0"
   },
   "packageManager": "yarn@3.4.1"

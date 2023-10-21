@@ -7,10 +7,12 @@ export const DIR_REPOSITORY = path.join(DIR_ROOT, "repository")
 export const DIR_GAME_REPO_ROOT = path.join(DIR_REPOSITORY, "degrees-of-lewdity")
 export const DIR_MODLOADER_REPO_ROOT = path.join(DIR_REPOSITORY, "sugarcube-2-ModLoader")
 export const DIR_MODLOADER_BUILT_ROOT = path.join(DIR_ROOT, "modloader")
+export const DIR_MODLOADER_BUILT_MODS = path.join(DIR_MODLOADER_BUILT_ROOT, "mods")
 export const DIR_GAME_TWINE = path.join(DIR_GAME_REPO_ROOT, "game");
 export const DIR_DATA = path.join(DIR_ROOT, 'data');
 export const DIR_DATA_PASSAGE = path.join(DIR_DATA, "passage");
 export const DIR_DATA_PASSAGE_SOURCE = path.join(DIR_DATA_PASSAGE, "source");
+export const DIR_DATA_TEMP = path.join(DIR_DATA, "tmp");
 export const DIR_MODS = path.join(DIR_ROOT, 'mods');
 export const DIR_RESULTS = path.join(DIR_ROOT, 'results');
 
