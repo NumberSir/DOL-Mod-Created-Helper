@@ -19,54 +19,22 @@ import {
 } from "./consts.js";
 
 import {promisify} from "util";
-import {simpleGit} from "simple-git";
 import {osLocale} from "os-locale";
 import axios from "axios";
 import JSZip from 'jszip';
 
-import fs from "fs";
+import fs, {createWriteStream} from "fs";
 import path from "path";
 import https from "https";
 import child_process from "child_process";
-
-class PreProcessGit {
-    // 仓库相关
-    async initGit() {
-        const progress = ({method, stage, progress}) => {
-            // checkout, clone, fetch, pull, push 可以查看进度
-            console.log(`[PROGESS] git.${method} ${stage} stage ${progress}% complete`);
-        };
-        const options = {
-            baseDir: process.cwd(),
-            binary: 'git',
-            maxConcurrentProcesses: 8,
-            trimmed: false,
-
-            progress,
-            completion: {
-                onExit: 50,
-                onClose: true
-            },
-            timeout: {
-                block: 2000  // ms
-            }
-        };
-
-        let git = simpleGit(options);
-        await git.submoduleUpdate()
-    }
-}
+import stream from "stream";
 
 class PreProcessModLoader {
     // 下载解压预编译好的方便测试
     async initDirs() {
-        for (let dir of [
-            DIR_DATA_TEMP,
-            DIR_MODLOADER_BUILT_ROOT
-        ]) {
-            await promisify(fs.access)(dir).catch(err => {
-                fs.mkdirSync(dir);
-            });
+        // 新建临时文件夹和目标文件夹
+        for (let dir of [DIR_DATA_TEMP, DIR_MODLOADER_BUILT_ROOT]) {
+            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir);});
         }
     }
 
@@ -78,6 +46,7 @@ class PreProcessModLoader {
         let response = await axios.get(latestUrl, {httpsAgent: new https.Agent({rejectUnauthorized: false})});
         let latestId = response.data.assets[0].id;
         if (!fs.existsSync(localIdFile)) {
+            console.log(`首次运行，写入最新版 ModLoader 版本: ${latestId}`)
             fs.writeFileSync(localIdFile, latestId.toString());
             return false;
         }
@@ -95,21 +64,27 @@ class PreProcessModLoader {
 
         console.log("开始下载预编译好的 ModLoader...")
         let latestUrl = "https://api.github.com/repos/Lyoko-Jeremie/DoLModLoaderBuild/releases/latest"
-        let response = await axios.get(latestUrl, {httpsAgent: new https.Agent({rejectUnauthorized: false})});
+        let response = await axios.get(
+            latestUrl,
+            {httpsAgent: new https.Agent({rejectUnauthorized: false})}
+        );
         let downloadUrl = response.data.assets[0].browser_download_url;
 
         let language = await osLocale();
-        if (language === "zh-CN") downloadUrl = `https://ghproxy.com/${downloadUrl}`;
+        if (language === "zh-CN") downloadUrl = `https://ghproxy.com/${downloadUrl}`;  // 代理
 
+        const writer = createWriteStream(path.join(DIR_DATA_TEMP, "modloader.zip"));
+        const finished = promisify(stream.finished);
         axios({
             method: "get",
             url: downloadUrl,
             responseType: "stream"
-        }).then((response) => {
-            response.data.pipe(fs.createWriteStream(
-                path.join(DIR_DATA_TEMP, "modloader.zip")
-            ))
+        }).then(async (response) => {
+            response.data.pipe(writer);
             console.log("预编译好的 ModLoader 已下载完毕！")
+            return finished(writer);
+        }).then(async () => {
+            return await this.extractBuiltModLoader()
         })
     }
 
@@ -120,8 +95,7 @@ class PreProcessModLoader {
 
     async extractBuiltModLoader() {
         // 解压
-        let isExtracted = this.judgeIsExtracted();
-        if (isExtracted) {
+        if (this.judgeIsExtracted()) {
             console.log("当前 ModLoader 已经解压过了！")
             return
         }
@@ -154,6 +128,7 @@ class PreProcessModI18N {
         let response = await axios.get(latestUrl, {httpsAgent: new https.Agent({rejectUnauthorized: false})});
         let latestId = response.data.assets[0].id;
         if (!fs.existsSync(localIdFile)) {
+            console.log(`首次运行，写入最新版汉化模组版本: ${latestId}`)
             fs.writeFileSync(localIdFile, latestId.toString());
             return false;
         }
@@ -190,21 +165,10 @@ class PreProcessModI18N {
 
     async remoteLoadTest() {
         // 通过填写 modList.json 远程加载模组
-        await promisify(fs.rename)(
+        await promisify(fs.copyFile)(
             path.join(DIR_DATA_TEMP, "i18n.zip"),
             path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip")
         ).catch(err => {});
-
-        // await promisify(fs.access)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`)).catch(err => {
-        //     fs.writeFileSync(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify([
-        //         "i18n.zip"
-        //     ]));
-        // });
-        // let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`));
-        // let modListData = JSON.parse(modListDataBuffer);
-        // if (!modListData.includes("mods/i18n.zip")) {
-        //     modListData.push("mods/i18n.zip");
-        // }
 
         await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, "modList.json"), JSON.stringify(["mods/i18n.zip"]));
     }
@@ -217,33 +181,14 @@ class ProcessGamePassage {
     }
 
     async initDirs() {
-        for (let dir of [
-            DIR_DATA,
-            DIR_MODS,
-            DIR_DATA_PASSAGE
-        ]) {
-            await promisify(fs.access)(dir).catch(err => {
-                fs.mkdirSync(dir);
-            });
-        }
-    }
-
-    async dropDirs(filterFunc = null) {
-        for (let dir of [
-
-        ]) {
-            await promisify(fs.access)(dir).then(() => {
-                filterFunc === null || undefined
-                    ? fs.rmdirSync(dir)
-                    : filterFunc(dir)
-                    ? fs.rmdirSync(dir)
-                    : null;
-            });
+        for (let dir of [DIR_DATA, DIR_MODS, DIR_DATA_PASSAGE]) {
+            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir)});
         }
     }
 
     async getAllPassages(dirPath, name) {
         // 所有段落和段落名
+        console.log(`开始获取 ${name} 所有段落信息...`)
         let outputDir = path.join(DIR_DATA_PASSAGE, name);
         await promisify(fs.access)(outputDir).catch(async () => {
             await promisify(fs.mkdir)(outputDir).catch(err => {
@@ -287,6 +232,7 @@ class ProcessGamePassage {
         await promisify(fs.writeFile)(allPassagesFile, JSON.stringify(allPassages)).catch(err => {return Promise.reject(err)});
         await promisify(fs.writeFile)(allPassagesNamesFile, JSON.stringify(allPassagesNames)).catch(err => {return Promise.reject(err)});
 
+        console.log(`${name} 所有段落信息已获取完毕！共 ${allPassagesNames.length} 个段落。`)
         return [allPassagesNames, allPassages]
     }
 
@@ -315,6 +261,7 @@ class ProcessGamePassage {
         let [sourcePassagesNames, sourcePassages] = await this.getAllPassagesSource();
         let [modPassagesNames, modPassages] = await this.getAllPassagesMod(this.modDir);
 
+        console.log("开始获取修改源码的段落信息...");
         for (let passage of modPassages) {
             if (sourcePassagesNames.includes(passage.passageName)) {
                 samePassagesNames.push(passage.passageName);
@@ -325,6 +272,7 @@ class ProcessGamePassage {
         await promisify(fs.writeFile)(samePassagesFile, JSON.stringify(samePassages)).catch(err => {return Promise.reject(err)});
         await promisify(fs.writeFile)(samePassagesNamesFile, JSON.stringify(samePassagesNames)).catch(err => {return Promise.reject(err)});
 
+        console.log(`修改源码的段落信息已获取完毕！共 ${samePassagesNames.length} 个段落。`);
         return [samePassagesNames, samePassages]
     }
 
@@ -361,13 +309,8 @@ class ProcessGamePackage {
     }
 
     async initDirs() {
-        for (let dir of [
-            DIR_RESULTS,
-            DIR_MODLOADER_BUILT_MODS
-        ]) {
-            await promisify(fs.access)(dir).catch(err => {
-                fs.mkdirSync(dir);
-            });
+        for (let dir of [DIR_RESULTS, DIR_MODLOADER_BUILT_MODS]) {
+            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir)});
         }
     }
 
@@ -514,21 +457,30 @@ class ProcessGamePackage {
     }
 }
 
-(async () => {
-    let modLoader = new PreProcessModLoader();
+async function preDownload() {
+    const modLoader = new PreProcessModLoader();
     await modLoader.initDirs();
     await modLoader.downloadLatestBuiltModLoader();
-    await modLoader.extractBuiltModLoader();
 
-    let modI18N = new PreProcessModI18N();
+    const modI18N = new PreProcessModI18N();
+    await modI18N.downloadLatestModI18N();
+    await modI18N.remoteLoadTest();
+}
+
+(async () => {
+    const modLoader = new PreProcessModLoader();
+    await modLoader.initDirs();
+    await modLoader.downloadLatestBuiltModLoader();
+
+    const modI18N = new PreProcessModI18N();
     await modI18N.downloadLatestModI18N();
     await modI18N.remoteLoadTest();
 
-    // let gamePassage = new ProcessGamePassage("fenghuang-mods")
-    // await gamePassage.initDirs();
-    // await gamePassage.getSamePassagesMod()
+    const gamePassage = new ProcessGamePassage("fenghuang-mods")
+    await gamePassage.initDirs();
+    await gamePassage.getSamePassagesMod()
 
-    let gamePackage = new ProcessGamePackage("fenghuang-mods");
+    const gamePackage = new ProcessGamePackage("fenghuang-mods");
     await gamePackage.initDirs();
     await gamePackage.fetchModStructure();
     await gamePackage.writeBootJson();
