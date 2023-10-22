@@ -74,7 +74,6 @@ class PreProcessModLoader {
         if (language === "zh-CN") downloadUrl = `https://ghproxy.com/${downloadUrl}`;  // 代理
 
         const writer = createWriteStream(path.join(DIR_DATA_TEMP, "modloader.zip"));
-        const finished = promisify(stream.finished);
         axios({
             method: "get",
             url: downloadUrl,
@@ -82,7 +81,7 @@ class PreProcessModLoader {
         }).then(async (response) => {
             response.data.pipe(writer);
             console.log("预编译好的 ModLoader 已下载完毕！")
-            return finished(writer);
+            return promisify(stream.finished);
         }).then(async () => {
             return await this.extractBuiltModLoader()
         })
