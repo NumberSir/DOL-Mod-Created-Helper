@@ -29,7 +29,7 @@ import https from "https";
 import child_process from "child_process";
 import stream from "stream";
 
-class PreProcessModLoader {
+export class PreProcessModLoader {
     // 下载解压预编译好的方便测试
     async initDirs() {
         // 新建临时文件夹和目标文件夹
@@ -73,33 +73,20 @@ class PreProcessModLoader {
         let language = await osLocale();
         if (language === "zh-CN") downloadUrl = `https://ghproxy.com/${downloadUrl}`;  // 代理
 
-        const writer = createWriteStream(path.join(DIR_DATA_TEMP, "modloader.zip"));
         axios({
             method: "get",
             url: downloadUrl,
             responseType: "stream"
-        }).then(async (response) => {
-            response.data.pipe(writer);
-            console.log("预编译好的 ModLoader 已下载完毕！")
-            return promisify(stream.finished);
-        }).then(async () => {
-            return await this.extractBuiltModLoader()
-        })
-    }
-
-    judgeIsExtracted() {
-        // 要不要重复解压
-        return fs.existsSync(path.join(DIR_MODLOADER_BUILT_ROOT, "Degrees of Lewdity VERSION.html.mod.html"))
+        }).then((response => {
+            response.data.pipe(fs.createWriteStream(
+                path.join(DIR_DATA_TEMP, "modloader.zip")
+            ))
+            console.log("ModLoader 已下载完毕！")
+        }))
     }
 
     async extractBuiltModLoader() {
         // 解压
-        if (this.judgeIsExtracted()) {
-            console.log("当前 ModLoader 已经解压过了！")
-            return
-        }
-
-        console.log("开始解压 ModLoader...")
         let zip = new JSZip();
         let binary = await promisify(fs.readFile)(path.join(DIR_DATA_TEMP, "modloader.zip")).catch(err => {});
         let modLoaderPackage = await zip.loadAsync(binary);
@@ -112,13 +99,12 @@ class PreProcessModLoader {
             } else {
                 let buffer = await zipFiles[filepath].async("nodebuffer");
                 await promisify(fs.writeFile)(destination, buffer);
-                console.log("预编译好的 ModLoader 已解压完毕")
             }
         }
     }
 }
 
-class PreProcessModI18N {
+export class PreProcessModI18N {
     async judgeIsLatest() {
         // 要不要重复下载
         console.log("开始获取最新版汉化模组版本...")
@@ -173,7 +159,7 @@ class PreProcessModI18N {
     }
 }
 
-class ProcessGamePassage {
+export class ProcessGamePassage {
     // 为下文的自动填写 replace-addon 做准备
     constructor(modDir) {
         this.modDir = modDir;
@@ -181,7 +167,7 @@ class ProcessGamePassage {
 
     async initDirs() {
         for (let dir of [DIR_DATA, DIR_MODS, DIR_DATA_PASSAGE]) {
-            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir)});
+            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir, {recursive: true})});
         }
     }
 
@@ -301,7 +287,7 @@ class ProcessGamePassage {
     }
 }
 
-class ProcessGamePackage {
+export class ProcessGamePackage {
     // 模组打包相关
     constructor(modDir) {
         this.modDir = modDir;
@@ -309,7 +295,7 @@ class ProcessGamePackage {
 
     async initDirs() {
         for (let dir of [DIR_RESULTS, DIR_MODLOADER_BUILT_MODS]) {
-            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir)});
+            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir, {recursive: true})});
         }
     }
 
@@ -455,40 +441,4 @@ class ProcessGamePackage {
         await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify(modListData));
     }
 }
-
-async function preDownload() {
-    const modLoader = new PreProcessModLoader();
-    await modLoader.initDirs();
-    await modLoader.downloadLatestBuiltModLoader();
-
-    const modI18N = new PreProcessModI18N();
-    await modI18N.downloadLatestModI18N();
-    await modI18N.remoteLoadTest();
-}
-
-(async () => {
-    const modLoader = new PreProcessModLoader();
-    await modLoader.initDirs();
-    await modLoader.downloadLatestBuiltModLoader();
-
-    const modI18N = new PreProcessModI18N();
-    await modI18N.downloadLatestModI18N();
-    await modI18N.remoteLoadTest();
-
-    const gamePassage = new ProcessGamePassage("fenghuang-mods")
-    await gamePassage.initDirs();
-    await gamePassage.getSamePassagesMod()
-
-    const gamePackage = new ProcessGamePackage("fenghuang-mods");
-    await gamePackage.initDirs();
-    await gamePackage.fetchModStructure();
-    await gamePackage.writeBootJson();
-    await gamePackage.packageMod();
-    await gamePackage.remoteLoadTest();
-
-    console.log("启动本地服务器...")
-    child_process.exec("start http://localhost:8000/modloader/Degrees%20of%20Lewdity%20VERSION.html.mod.html");
-    console.log("如果浏览器没有自动启动，请手动打开\nhttp://localhost:8080/Degrees%20of%20Lewdity%20VERSION.html.mod.html\n网页")
-    child_process.exec("anywhere -s")
-})();
 

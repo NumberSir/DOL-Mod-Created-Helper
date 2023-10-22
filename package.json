@@ -4,7 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "test-js": "node src/core.js"
+    "test-js": "node main.js"
   },
   "keywords": [],
   "dependencies": {
