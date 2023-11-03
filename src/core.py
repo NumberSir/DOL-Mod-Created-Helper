@@ -370,11 +370,11 @@ class GameMod:
                 DIR_MODLOADER_MODS / f"{filename}.mod.zip"
             )
             mod_data.append(f"mods/{filename}.mod.zip")
-            mod_info[filename] = {
-                "name": filename,
-                "version": data["version"],
-                "dependence": data["dependenceInfo"]
-            }
+            # mod_info[filename] = {
+            #     "name": filename,
+            #     "version": data["version"],
+            #     "dependence": data["dependenceInfo"]
+            # }
 
             logger.info(locale(Langs.PackageFinishModInfo, filename=filename))
 
