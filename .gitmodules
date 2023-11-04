@@ -1,6 +1,6 @@
-[submodule "repository/degrees-of-lewdity"]
-	path = repository/degrees-of-lewdity
-	url = https://gitgud.io/Vrelnir/degrees-of-lewdity.git
 [submodule "repository/sugarcube-2-ModLoader"]
 	path = repository/sugarcube-2-ModLoader
 	url = https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader.git
+[submodule "repository/degrees-of-lewdity"]
+	path = repository/degrees-of-lewdity
+	url = https://gitgud.io/Vrelnir/degrees-of-lewdity.git
