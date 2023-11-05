@@ -15,8 +15,14 @@ import {
     DIR_GAME_REPO_ROOT,
     DIR_RESULTS,
     DEFAULT_DEPENDENCE_INFO,
-    DEFAULT_ADDON_PLUGIN, DIR_DATA_TEMP, DIR_MODLOADER_BUILT_ROOT, DIR_MODLOADER_BUILT_MODS, DIR_ROOT
+    DEFAULT_ADDON_PLUGIN,
+    DIR_DATA_TEMP,
+    DIR_MODLOADER_BUILT_ROOT,
+    DIR_MODLOADER_BUILT_MODS,
+    GITHUB_HEADERS
 } from "./consts.js";
+
+console.log("headers: ", GITHUB_HEADERS)
 
 import {promisify} from "util";
 import {osLocale} from "os-locale";
@@ -26,15 +32,13 @@ import JSZip from 'jszip';
 import fs, {createWriteStream} from "fs";
 import path from "path";
 import https from "https";
-import child_process from "child_process";
-import stream from "stream";
 
 export class PreProcessModLoader {
     // 下载解压预编译好的方便测试
     async initDirs() {
         // 新建临时文件夹和目标文件夹
         for (let dir of [DIR_DATA_TEMP, DIR_MODLOADER_BUILT_ROOT]) {
-            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir);});
+            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir, {recursive: true});});
         }
     }
 
@@ -43,9 +47,18 @@ export class PreProcessModLoader {
         console.log("开始获取最新版 ModLoader 版本...")
         let localIdFile = path.join(DIR_DATA_TEMP, "modloader-id.txt");
         let latestUrl = "https://api.github.com/repos/Lyoko-Jeremie/DoLModLoaderBuild/releases/latest"
-        let response = await axios.get(latestUrl, {httpsAgent: new https.Agent({rejectUnauthorized: false})});
+        let response = await axios.get(
+            latestUrl,
+            {
+                httpsAgent: new https.Agent({rejectUnauthorized: false}),
+                headers: GITHUB_HEADERS
+            },
+        );
         let latestId = response.data.assets[0].id;
-        if (!fs.existsSync(localIdFile)) {
+        if (
+            !fs.existsSync(localIdFile)
+            || !fs.existsSync(path.join(DIR_MODLOADER_BUILT_MODS, "modloader.zip"))
+        ) {
             console.log(`首次运行，写入最新版 ModLoader 版本: ${latestId}`)
             fs.writeFileSync(localIdFile, latestId.toString());
             return false;
@@ -66,23 +79,30 @@ export class PreProcessModLoader {
         let latestUrl = "https://api.github.com/repos/Lyoko-Jeremie/DoLModLoaderBuild/releases/latest"
         let response = await axios.get(
             latestUrl,
-            {httpsAgent: new https.Agent({rejectUnauthorized: false})}
+            {
+                httpsAgent: new https.Agent({rejectUnauthorized: false}),
+                headers: GITHUB_HEADERS
+            }
         );
         let downloadUrl = response.data.assets[0].browser_download_url;
 
         let language = await osLocale();
-        if (language === "zh-CN") downloadUrl = `https://ghproxy.com/${downloadUrl}`;  // 代理
+        // if (language === "zh-CN") downloadUrl = `https://ghproxy.com/${downloadUrl}`;  // 代理
 
         axios({
             method: "get",
             url: downloadUrl,
-            responseType: "stream"
-        }).then((response => {
-            response.data.pipe(fs.createWriteStream(
+            responseType: "stream",
+            headers: GITHUB_HEADERS
+        }).then((response) => {
+            let writeStream = response.data.pipe(fs.createWriteStream(
                 path.join(DIR_DATA_TEMP, "modloader.zip")
             ))
-            console.log("ModLoader 已下载完毕！")
-        }))
+            writeStream.on('finish', async () => {
+                console.log("ModLoader 已下载完毕！")
+                await this.extractBuiltModLoader();
+            })
+        })
     }
 
     async extractBuiltModLoader() {
@@ -90,6 +110,7 @@ export class PreProcessModLoader {
         let zip = new JSZip();
         let binary = await promisify(fs.readFile)(path.join(DIR_DATA_TEMP, "modloader.zip")).catch(err => {});
         let modLoaderPackage = await zip.loadAsync(binary);
+        // let modLoaderPackage = await zip.loadAsync(binary);
         let zipFiles = modLoaderPackage.files;
 
         for (let filepath of Object.keys(zipFiles)) {
@@ -110,9 +131,15 @@ export class PreProcessModI18N {
         console.log("开始获取最新版汉化模组版本...")
         let localIdFile = path.join(DIR_DATA_TEMP, "i18n-id.txt");
         let latestUrl = "https://api.github.com/repos/NumberSir/DoL-I18n-Build/releases/latest"
-        let response = await axios.get(latestUrl, {httpsAgent: new https.Agent({rejectUnauthorized: false})});
+        let response = await axios.get(
+            latestUrl,
+            {
+                httpsAgent: new https.Agent({rejectUnauthorized: false}),
+                headers: GITHUB_HEADERS
+            }
+        );
         let latestId = response.data.assets[0].id;
-        if (!fs.existsSync(localIdFile)) {
+        if (!fs.existsSync(localIdFile) || !fs.existsSync(path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip"))) {
             console.log(`首次运行，写入最新版汉化模组版本: ${latestId}`)
             fs.writeFileSync(localIdFile, latestId.toString());
             return false;
@@ -135,16 +162,20 @@ export class PreProcessModI18N {
         let response = await axios.get(latestUrl, {httpsAgent: new https.Agent({rejectUnauthorized: false})});
         let downloadUrl = response.data.assets[0].browser_download_url;
 
-        downloadUrl = `https://ghproxy.com/${downloadUrl}`;
+        // downloadUrl = `https://ghproxy.com/${downloadUrl}`;
         axios({
             method: "get",
             url: downloadUrl,
-            responseType: "stream"
-        }).then((response) => {
-            response.data.pipe(fs.createWriteStream(
+            responseType: "stream",
+            headers: GITHUB_HEADERS
+        }).then(response => {
+            let writeStream = response.data.pipe(fs.createWriteStream(
                 path.join(DIR_DATA_TEMP, "i18n.zip")
             ))
-            console.log("汉化模组已下载完毕！")
+            writeStream.on('finish', async () => {
+                console.log("汉化模组已下载完毕！")
+                await this.remoteLoadTest()
+            })
         })
     }
 

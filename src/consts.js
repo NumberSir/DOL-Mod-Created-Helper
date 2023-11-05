@@ -1,5 +1,7 @@
 import path from "path";
 import { fileURLToPath } from 'url';
+import {config} from 'dotenv';
+config()
 
 /** PATHS */
 export const DIR_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../");
@@ -89,3 +91,7 @@ export const DEFAULT_ADDON_PLUGIN = [
       "params": []
     }
 ]
+export const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+export const GITHUB_HEADERS = {
+    Authorization: `Bearer ${GITHUB_TOKEN}`
+}

@@ -18,3 +18,4 @@
 *.lock
 *-lock.json
 commits.json
+.env

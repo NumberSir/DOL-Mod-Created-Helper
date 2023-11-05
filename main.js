@@ -15,9 +15,7 @@ async function processModLoader() {
 
 async function processI18N() {
     const modI18N = new PreProcessModI18N();
-    return modI18N.downloadLatestModI18N().then(
-        () => modI18N.remoteLoadTest()
-    );
+    return modI18N.downloadLatestModI18N()
 }
 
 async function processMod() {
@@ -46,12 +44,5 @@ function runLocalServer() {
         processModLoader(),
         processI18N(),
         processMod()
-    ]).then(
-        () => {
-            modLoader.extractBuiltModLoader().then(
-                () => runLocalServer()
-            );
-        }
-    )
-
+    ])
 })();

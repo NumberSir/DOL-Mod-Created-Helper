@@ -11,6 +11,7 @@
     "@types/node": "^20.6.0",
     "anywhere": "^1.6.0",
     "axios": "^1.5.1",
+    "dotenv": "^16.3.1",
     "jszip": "^3.10.1",
     "os-locale": "^6.0.2"
   },
