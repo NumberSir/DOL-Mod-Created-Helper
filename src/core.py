@@ -207,7 +207,7 @@ class GameMod:
                         for js_special in {"scriptFileList_inject_early", "scriptFileList_earlyload", "scriptFileList_preload", "additionFile"}:
                             if self._boot_json[name].get(js_special) and filepath_str in self._boot_json[name][js_special]:
                                 continue
-                        self._boot_json[name]["scriptFileList"].append(filepath_str)
+                            self._boot_json[name]["scriptFileList"].append(filepath_str)
                     elif file.endswith(".css"):
                         self._boot_json[name]["styleFileList"].append(filepath_str)
                     elif any(file.endswith(suf) for suf in {
