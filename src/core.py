@@ -204,10 +204,18 @@ class GameMod:
                         None if (DIR_SOURCE_REPO / filepath).exists() else self._boot_json[name]["tweeFileList"].append(filepath_str)
                     elif file.endswith(".js"):
                         # 去重
-                        for js_special in {"scriptFileList_inject_early", "scriptFileList_earlyload", "scriptFileList_preload", "additionFile"}:
-                            if self._boot_json[name].get(js_special) and filepath_str in self._boot_json[name][js_special]:
-                                continue
+                        if not any({(
+                            self._boot_json[name].get(js_special)
+                            and filepath_str in self._boot_json[name][js_special]
+                        ) for js_special in {
+                                "scriptFileList_inject_early",
+                                "scriptFileList_earlyload",
+                                "scriptFileList_preload",
+                                "additionFile"
+                            }
+                        }):
                             self._boot_json[name]["scriptFileList"].append(filepath_str)
+
                     elif file.endswith(".css"):
                         self._boot_json[name]["styleFileList"].append(filepath_str)
                     elif any(file.endswith(suf) for suf in {
