@@ -2,18 +2,39 @@
   "name": "dol-mod-create-helper-ts",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
   "scripts": {
-    "test-js": "node main.js"
+    "build:w": "webpack -w -c ./webpack.config.js",
+    "build": "webpack -c ./webpack.config.js",
+    "test-js": "node ./dist/main.js \".\""
   },
   "keywords": [],
   "dependencies": {
-    "@types/node": "^20.6.0",
     "anywhere": "^1.6.0",
     "axios": "^1.5.1",
     "dotenv": "^16.3.1",
     "jszip": "^3.10.1",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
     "os-locale": "^6.0.2"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.198",
+    "@types/node": "^20.6.0",
+    "@webpack-cli/generators": "^3.0.7",
+    "css-loader": "^6.8.1",
+    "fork-ts-checker-webpack-plugin": "^8.0.0",
+    "html-webpack-plugin": "^5.5.3",
+    "nodemon": "^3.0.1",
+    "sass": "^1.66.1",
+    "sass-loader": "^13.3.2",
+    "style-loader": "^3.3.3",
+    "ts-loader": "^9.4.4",
+    "ts-mixer": "^6.0.3",
+    "tsconfig-paths-webpack-plugin": "^4.1.0",
+    "typescript": "^5.1.6",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
   },
   "packageManager": "yarn@3.4.1"
 }

@@ -1,10 +1,17 @@
 import path from "path";
-import { fileURLToPath } from 'url';
+import process from "process";
 import {config} from 'dotenv';
+
+console.log('process.argv', process.argv);
+if (!process.argv[2]) {
+    console.error(`process.argv[2] not set. maybe you need set to "."`);
+    process.exit(1);
+}
+
 config()
 
 /** PATHS */
-export const DIR_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../");
+export const DIR_ROOT = path.resolve(path.dirname(process.argv[2]), "../");
 export const DIR_REPOSITORY = path.join(DIR_ROOT, "repository")
 export const DIR_GAME_REPO_ROOT = path.join(DIR_REPOSITORY, "degrees-of-lewdity")
 export const DIR_MODLOADER_REPO_ROOT = path.join(DIR_REPOSITORY, "sugarcube-2-ModLoader")
@@ -51,44 +58,44 @@ export const BOOT_KEYS = {
 }
 export const DEFAULT_DEPENDENCE_INFO = [
     {
-      "modName": "ModLoader",
-      "version": ">=1.6.4"
+        "modName": "ModLoader",
+        "version": ">=1.6.4"
     },
     {
-      "modName": "TweeReplacer",
-      "version": ">=1.1.0"
+        "modName": "TweeReplacer",
+        "version": ">=1.1.0"
     },
     {
-      "modName": "ReplacePatcher",
-      "version": ">=1.1.0"
+        "modName": "ReplacePatcher",
+        "version": ">=1.1.0"
     },
     {
-      "modName": "ModLoader DoL ImageLoaderHook",
-      "version": ">=2.3.0"
+        "modName": "ModLoader DoL ImageLoaderHook",
+        "version": ">=2.3.0"
     }
 ]
 export const DEFAULT_ADDON_PLUGIN = [
     {
-      "modName": "TweeReplacer",
-      "addonName": "TweeReplacerAddon",
-      "modVersion": "1.1.0",
-      "params": []
+        "modName": "TweeReplacer",
+        "addonName": "TweeReplacerAddon",
+        "modVersion": "1.1.0",
+        "params": []
     },
     {
-      "modName": "ReplacePatcher",
-      "addonName": "ReplacePatcherAddon",
-      "modVersion": "1.1.0",
-      "params": {
-          "js": [],
-          "css": [],
-          "twee": []
-      }
+        "modName": "ReplacePatcher",
+        "addonName": "ReplacePatcherAddon",
+        "modVersion": "1.1.0",
+        "params": {
+            "js": [],
+            "css": [],
+            "twee": []
+        }
     },
     {
-      "modName": "ModLoader DoL ImageLoaderHook",
-      "addonName": "ImageLoaderAddon",
-      "modVersion": "2.3.0",
-      "params": []
+        "modName": "ModLoader DoL ImageLoaderHook",
+        "addonName": "ImageLoaderAddon",
+        "modVersion": "2.3.0",
+        "params": []
     }
 ]
 export const GITHUB_TOKEN = process.env.GITHUB_TOKEN;

@@ -19,3 +19,6 @@
 *-lock.json
 commits.json
 .env
+dist
+dist*
+

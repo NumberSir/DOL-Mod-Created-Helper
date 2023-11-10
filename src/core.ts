@@ -5,7 +5,7 @@ import {
     onlyStyleFileFilter,
     onlyImageFileFilter,
     onlyExtraFileFilter
-} from "./utils/file-utils.js";
+} from "./utils/file-utils";
 
 import {
     DIR_DATA,
@@ -20,7 +20,7 @@ import {
     DIR_MODLOADER_BUILT_ROOT,
     DIR_MODLOADER_BUILT_MODS,
     GITHUB_HEADERS
-} from "./consts.js";
+} from "./consts";
 
 console.log("headers: ", GITHUB_HEADERS)
 
@@ -28,6 +28,7 @@ import {promisify} from "util";
 import {osLocale} from "os-locale";
 import axios from "axios";
 import JSZip from 'jszip';
+import {has, get} from 'lodash';
 
 import fs, {createWriteStream} from "fs";
 import path from "path";
@@ -38,7 +39,9 @@ export class PreProcessModLoader {
     async initDirs() {
         // 新建临时文件夹和目标文件夹
         for (let dir of [DIR_DATA_TEMP, DIR_MODLOADER_BUILT_ROOT]) {
-            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir, {recursive: true});});
+            await promisify(fs.access)(dir).catch(async () => {
+                return await promisify(fs.mkdir)(dir, {recursive: true});
+            });
         }
     }
 
@@ -56,11 +59,11 @@ export class PreProcessModLoader {
         );
         let latestId = response.data.assets[0].id;
         if (
-            !fs.existsSync(localIdFile)
-            || !fs.existsSync(path.join(DIR_MODLOADER_BUILT_MODS, "modloader.zip"))
+            !await promisify(fs.exists)(localIdFile)
+            || !await promisify(fs.exists)(path.join(DIR_MODLOADER_BUILT_MODS, "modloader.zip"))
         ) {
             console.log(`首次运行，写入最新版 ModLoader 版本: ${latestId}`)
-            fs.writeFileSync(localIdFile, latestId.toString());
+            await promisify(fs.writeFile)(localIdFile, latestId.toString());
             return false;
         }
 
@@ -89,26 +92,43 @@ export class PreProcessModLoader {
         let language = await osLocale();
         // if (language === "zh-CN") downloadUrl = `https://ghproxy.com/${downloadUrl}`;  // 代理
 
-        axios({
+        await axios({
             method: "get",
             url: downloadUrl,
             responseType: "stream",
             headers: GITHUB_HEADERS
         }).then((response) => {
-            let writeStream = response.data.pipe(fs.createWriteStream(
-                path.join(DIR_DATA_TEMP, "modloader.zip")
-            ))
-            writeStream.on('finish', async () => {
-                console.log("ModLoader 已下载完毕！")
-                await this.extractBuiltModLoader();
-            })
-        })
+            return new Promise<void>((resolve, reject) => {
+                let writeStream = response.data.pipe(fs.createWriteStream(
+                    path.join(DIR_DATA_TEMP, "modloader.zip")
+                ))
+                writeStream.on('finish', async () => {
+                    try {
+                        console.log("ModLoader 已下载完毕！")
+                        await this.extractBuiltModLoader();
+                        resolve();
+                    } catch (e) {
+                        console.error(e);
+                        reject(e);
+                    }
+                });
+                writeStream.on('error', (e: any) => {
+                    console.error(e);
+                    reject(e);
+                });
+            });
+        });
     }
 
     async extractBuiltModLoader() {
         // 解压
         let zip = new JSZip();
-        let binary = await promisify(fs.readFile)(path.join(DIR_DATA_TEMP, "modloader.zip")).catch(err => {});
+        let binary = await promisify(fs.readFile)(path.join(DIR_DATA_TEMP, "modloader.zip")).catch(err => {
+        });
+        if (!binary) {
+            console.error("ERROR extractBuiltModLoader() cannot read modloader.zip");
+            throw new Error("ERROR extractBuiltModLoader() cannot read modloader.zip");
+        }
         let modLoaderPackage = await zip.loadAsync(binary);
         // let modLoaderPackage = await zip.loadAsync(binary);
         let zipFiles = modLoaderPackage.files;
@@ -116,7 +136,7 @@ export class PreProcessModLoader {
         for (let filepath of Object.keys(zipFiles)) {
             let destination = path.join(DIR_MODLOADER_BUILT_ROOT, filepath);
             if (zipFiles[filepath].dir) {
-                fs.mkdirSync(destination, {recursive: true});
+                return await promisify(fs.mkdir)(destination, {recursive: true});
             } else {
                 let buffer = await zipFiles[filepath].async("nodebuffer");
                 await promisify(fs.writeFile)(destination, buffer);
@@ -124,6 +144,17 @@ export class PreProcessModLoader {
         }
     }
 }
+
+export interface PassageInfoType {
+    passageName: string,
+    passageBody: string,
+    passageFull: string,
+    filepath: string,
+    filename: string
+}
+
+export type AllPassageInfoType = PassageInfoType[];
+export type GetAllPassageReturnType = [string[], PassageInfoType[]];
 
 export class PreProcessModI18N {
     async judgeIsLatest() {
@@ -139,9 +170,9 @@ export class PreProcessModI18N {
             }
         );
         let latestId = response.data.assets[0].id;
-        if (!fs.existsSync(localIdFile) || !fs.existsSync(path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip"))) {
+        if (!await promisify(fs.exists)(localIdFile) || !await promisify(fs.exists)(path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip"))) {
             console.log(`首次运行，写入最新版汉化模组版本: ${latestId}`)
-            fs.writeFileSync(localIdFile, latestId.toString());
+            await promisify(fs.writeFile)(localIdFile, latestId.toString());
             return false;
         }
 
@@ -169,14 +200,26 @@ export class PreProcessModI18N {
             responseType: "stream",
             headers: GITHUB_HEADERS
         }).then(response => {
-            let writeStream = response.data.pipe(fs.createWriteStream(
-                path.join(DIR_DATA_TEMP, "i18n.zip")
-            ))
-            writeStream.on('finish', async () => {
-                console.log("汉化模组已下载完毕！")
-                await this.remoteLoadTest()
-            })
-        })
+            return new Promise<void>((resolve, reject) => {
+                let writeStream = response.data.pipe(fs.createWriteStream(
+                    path.join(DIR_DATA_TEMP, "i18n.zip")
+                ))
+                writeStream.on('finish', async () => {
+                    try {
+                        console.log("汉化模组已下载完毕！")
+                        await this.remoteLoadTest()
+                        resolve();
+                    } catch (e) {
+                        console.error(e);
+                        reject(e);
+                    }
+                });
+                writeStream.on('error', (e: any) => {
+                    console.error(e);
+                    reject(e);
+                });
+            });
+        });
     }
 
     async remoteLoadTest() {
@@ -184,7 +227,8 @@ export class PreProcessModI18N {
         await promisify(fs.copyFile)(
             path.join(DIR_DATA_TEMP, "i18n.zip"),
             path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip")
-        ).catch(err => {});
+        ).catch(err => {
+        });
 
         await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, "modList.json"), JSON.stringify(["mods/i18n.zip"]));
     }
@@ -192,34 +236,39 @@ export class PreProcessModI18N {
 
 export class ProcessGamePassage {
     // 为下文的自动填写 replace-addon 做准备
-    constructor(modDir) {
-        this.modDir = modDir;
+    constructor(
+        public modDir: string
+    ) {
     }
 
     async initDirs() {
         for (let dir of [DIR_DATA, DIR_MODS, DIR_DATA_PASSAGE]) {
-            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir, {recursive: true})});
+            await promisify(fs.access)(dir).catch(async () => {
+                return await promisify(fs.mkdir)(dir, {recursive: true})
+            });
         }
     }
 
-    async getAllPassages(dirPath, name) {
+    async getAllPassages(dirPath: string, name: string): Promise<GetAllPassageReturnType> {
         // 所有段落和段落名
         console.log(`开始获取 ${name} 所有段落信息...`)
         let outputDir = path.join(DIR_DATA_PASSAGE, name);
         await promisify(fs.access)(outputDir).catch(async () => {
-            await promisify(fs.mkdir)(outputDir).catch(err => {
+            await promisify(fs.mkdir)(outputDir).catch(async (err) => {
                 console.error(`ERROR when mkdir of ${outputDir}`);
                 return Promise.reject(err);
             })
         })
-        let allPassages = [];
-        let allPassagesNames = [];
+        let allPassages: AllPassageInfoType = [];
+        let allPassagesNames: string[] = [];
         let allPassagesFile = path.join(outputDir, "all_passages.json");
         let allPassagesNamesFile = path.join(outputDir, "all_passages_names.json");
 
         let allTwineFiles = walk(dirPath, onlyTwineFileFilter);
         for (let file of allTwineFiles) {
-            let content = await promisify(fs.readFile)(file).catch(err => {return Promise.reject(err)});
+            let content = await promisify(fs.readFile)(file).catch(err => {
+                return Promise.reject(err)
+            });
             let contentSlice = content.toString().split(":: ");
             contentSlice = contentSlice.filter((item, idx) => idx % 2 !== 0);
             // slice 中的偶数元素包含标题
@@ -245,24 +294,28 @@ export class ProcessGamePassage {
             }
         }
 
-        await promisify(fs.writeFile)(allPassagesFile, JSON.stringify(allPassages)).catch(err => {return Promise.reject(err)});
-        await promisify(fs.writeFile)(allPassagesNamesFile, JSON.stringify(allPassagesNames)).catch(err => {return Promise.reject(err)});
+        await promisify(fs.writeFile)(allPassagesFile, JSON.stringify(allPassages)).catch(err => {
+            return Promise.reject(err)
+        });
+        await promisify(fs.writeFile)(allPassagesNamesFile, JSON.stringify(allPassagesNames)).catch(err => {
+            return Promise.reject(err)
+        });
 
         console.log(`${name} 所有段落信息已获取完毕！共 ${allPassagesNames.length} 个段落。`)
         return [allPassagesNames, allPassages]
     }
 
-    async getAllPassagesSource() {
+    async getAllPassagesSource(): Promise<GetAllPassageReturnType> {
         // 源码中的所有段落和段落名
         let [allPassagesNames, allPassages] = await this.getAllPassages(DIR_GAME_TWINE, "source");
         await this.writePassagesSource(allPassages);
         return [allPassagesNames, allPassages]
     }
 
-    async getAllPassagesMod() {
+    async getAllPassagesMod(): Promise<GetAllPassageReturnType> {
         // 模组中的所有段落和段落名
         let [allPassagesNames, allPassages] = await this.getAllPassages(path.join(DIR_MODS, this.modDir), this.modDir);
-        await this.writePassagesMod(allPassages, this.modDir);
+        await this.writePassagesMod(allPassages);
         return [allPassagesNames, allPassages]
     }
 
@@ -275,7 +328,7 @@ export class ProcessGamePassage {
         let samePassagesNamesFile = path.join(outputDir, "same_passages_names.json");
 
         let [sourcePassagesNames, sourcePassages] = await this.getAllPassagesSource();
-        let [modPassagesNames, modPassages] = await this.getAllPassagesMod(this.modDir);
+        let [modPassagesNames, modPassages] = await this.getAllPassagesMod();
 
         console.log("开始获取修改源码的段落信息...");
         for (let passage of modPassages) {
@@ -285,14 +338,18 @@ export class ProcessGamePassage {
             }
         }
 
-        await promisify(fs.writeFile)(samePassagesFile, JSON.stringify(samePassages)).catch(err => {return Promise.reject(err)});
-        await promisify(fs.writeFile)(samePassagesNamesFile, JSON.stringify(samePassagesNames)).catch(err => {return Promise.reject(err)});
+        await promisify(fs.writeFile)(samePassagesFile, JSON.stringify(samePassages)).catch(err => {
+            return Promise.reject(err)
+        });
+        await promisify(fs.writeFile)(samePassagesNamesFile, JSON.stringify(samePassagesNames)).catch(err => {
+            return Promise.reject(err)
+        });
 
         console.log(`修改源码的段落信息已获取完毕！共 ${samePassagesNames.length} 个段落。`);
         return [samePassagesNames, samePassages]
     }
 
-    async writePassages(allPassages, name) {
+    async writePassages(allPassages: AllPassageInfoType, name: string) {
         // 分开写成文件
         let outputDir = path.join(DIR_DATA_PASSAGE, name, "all_passages");
         await promisify(fs.access)(outputDir).catch(async () => {
@@ -305,69 +362,113 @@ export class ProcessGamePassage {
         for (let passage of allPassages) {
             passage.passageName = passage.passageName.replace('/', '_SLASH_');
             let passageFile = path.join(outputDir, `${passage.passageName}.twee`);
-            await promisify(fs.writeFile)(passageFile, passage.passageFull).catch(err => {return Promise.reject(err)});
+            await promisify(fs.writeFile)(passageFile, passage.passageFull).catch(err => {
+                return Promise.reject(err)
+            });
         }
     }
 
-    async writePassagesSource(allPassages) {
+    async writePassagesSource(allPassages: AllPassageInfoType) {
         return await this.writePassages(allPassages, "source")
     }
 
-    async writePassagesMod(allPassages) {
+    async writePassagesMod(allPassages: AllPassageInfoType) {
         return await this.writePassages(allPassages, this.modDir)
     }
 }
 
 export class ProcessGamePackage {
     // 模组打包相关
-    constructor(modDir) {
-        this.modDir = modDir;
+    constructor(
+        public modDir: string
+    ) {
     }
 
     async initDirs() {
         for (let dir of [DIR_RESULTS, DIR_MODLOADER_BUILT_MODS]) {
-            await promisify(fs.access)(dir).catch(() => {fs.mkdirSync(dir, {recursive: true})});
+            await promisify(fs.access)(dir).catch(async () => {
+                return await promisify(fs.mkdir)(dir, {recursive: true})
+            });
         }
     }
+
+    bootData?: { [key: string]: any };
+    sourceFilesTwine?: string[];
+    modFilesTwineAll?: string[];
+    modFilesTwineNew?: string[];
+    sourceFilesScript?: string[];
+    modFilesScriptSpecial?: string[];
+    modFilesScriptAll?: string[];
+    modFilesScriptNormal?: string[];
+    sourceFilesStyle?: string[];
+    modFilesStyleAll?: string[];
+    modFilesStyleNew?: string[];
+    modFilesImg?: string[];
+    modFilesAddition?: string[];
 
     async fetchModStructure() {
         // 获取模组文件结构
         console.log(`开始获取 ${this.modDir} 模组文件结构...`)
-        let buffer = await promisify(fs.readFile)(path.join(DIR_MODS, this.modDir, "boot.json")).catch(err => {});
+        let buffer = await promisify(fs.readFile)(path.join(DIR_MODS, this.modDir, "boot.json")).catch(err => {
+        });
+        if (!buffer) {
+            console.error(`ERROR fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
+            throw new Error(`ERROR fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
+        }
         this.bootData = JSON.parse(buffer.toString());
+        if (!this.bootData) {
+            console.error(`ERROR fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
+            throw new Error(`ERROR fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
+        }
 
         this.sourceFilesTwine = walk(path.join(DIR_GAME_REPO_ROOT), onlyTwineFileFilter, true);
         this.modFilesTwineAll = walk(path.join(DIR_MODS, this.modDir), onlyTwineFileFilter, true);
         this.modFilesTwineNew = this.modFilesTwineAll.filter((file) => {
-            return !(this.sourceFilesTwine.indexOf(file) > -1);
+            return !(this.sourceFilesTwine!.indexOf(file) > -1);
         });  // 过滤掉一致的
 
         this.sourceFilesScript = walk(path.join(DIR_GAME_REPO_ROOT), onlyJSFileFilter, true);
         this.modFilesScriptSpecial = [];
-        this.bootData.scriptFileList_preload
-            ? this.modFilesScriptSpecial = this.bootData.scriptFileList_preload
-            : this.bootData.scriptFileList_earlyload
-            ? this.modFilesScriptSpecial = this.modFilesScriptSpecial.concat(this.bootData.scriptFileList_earlyload)
-            : this.bootData.scriptFileList_inject_early
-            ? this.modFilesScriptSpecial = this.modFilesScriptSpecial.concat(this.bootData.scriptFileList_inject_early)
-            : null
+        if (has(this.bootData, 'scriptFileList_preload')) {
+            this.modFilesScriptSpecial = this.bootData.scriptFileList_preload;
+        } else {
+            if (has(this.bootData, 'scriptFileList_earlyload')) {
+                this.modFilesScriptSpecial = this.modFilesScriptSpecial.concat(this.bootData.scriptFileList_earlyload);
+            } else {
+                if (has(this.bootData, 'scriptFileList_inject_early')) {
+                    this.modFilesScriptSpecial = this.modFilesScriptSpecial.concat(this.bootData.scriptFileList_inject_early);
+                } else {
+                    // empty
+                    this.modFilesScriptSpecial = [];
+                }
+            }
+        }
+        // this.bootData.scriptFileList_preload
+        //     ? this.modFilesScriptSpecial = this.bootData.scriptFileList_preload
+        //     : this.bootData.scriptFileList_earlyload
+        //         ? this.modFilesScriptSpecial = this.modFilesScriptSpecial.concat(this.bootData.scriptFileList_earlyload)
+        //         : this.bootData.scriptFileList_inject_early
+        //             ? this.modFilesScriptSpecial = this.modFilesScriptSpecial.concat(this.bootData.scriptFileList_inject_early)
+        //             : null
         this.modFilesScriptAll = walk(path.join(DIR_MODS, this.modDir), onlyJSFileFilter, true);
         this.modFilesScriptNormal = this.modFilesScriptAll.filter((file) => {
-            return !(this.modFilesScriptSpecial.indexOf(file) > -1);
+            return !(this.modFilesScriptSpecial!.indexOf(file) > -1);
         });  // 过滤掉特殊的
         this.modFilesScriptNormal = this.modFilesScriptNormal.filter((file) => {
-            return !(this.sourceFilesScript.indexOf(file) > -1);
+            return !(this.sourceFilesScript!.indexOf(file) > -1);
         });  // 过滤掉一致的
 
         this.sourceFilesStyle = walk(path.join(DIR_GAME_REPO_ROOT), onlyStyleFileFilter, true);
         this.modFilesStyleAll = walk(path.join(DIR_MODS, this.modDir), onlyStyleFileFilter, true);
         this.modFilesStyleNew = this.modFilesStyleAll.filter((file) => {
-            return !(this.sourceFilesStyle.indexOf(file) > -1);
+            return !(this.sourceFilesStyle!.indexOf(file) > -1);
         });  // 过滤掉一致的
 
         this.modFilesImg = walk(path.join(DIR_MODS, this.modDir), onlyImageFileFilter, true);
         this.modFilesAddition = walk(path.join(DIR_MODS, this.modDir), onlyExtraFileFilter, true);
-        this.modFilesAddition = this.modFilesAddition.filter((item) => {return item !== "boot.json"});
+        this.modFilesAddition = this.modFilesAddition.filter((item) => {
+            return item !== "boot.json"
+        });
         console.log(`${this.modDir} 模组文件结构已获取完毕！`)
     }
 
@@ -381,6 +482,10 @@ export class ProcessGamePackage {
     }
 
     async writeBootJsonFileLists() {
+        if (!this.bootData) {
+            console.error(`ERROR writeBootJsonFileLists() cannot read bootData`);
+            throw new Error(`ERROR writeBootJsonFileLists() read find bootData`);
+        }
         // FileLists
         if (!this.bootData.tweeFileList) this.bootData.tweeFileList = this.modFilesTwineNew;
         if (!this.bootData.scriptFileList) this.bootData.scriptFileList = this.modFilesScriptNormal;
@@ -392,6 +497,10 @@ export class ProcessGamePackage {
     }
 
     async writeBootJsonAddons() {
+        if (!this.bootData) {
+            console.error(`ERROR writeBootJsonAddons() cannot read bootData`);
+            throw new Error(`ERROR writeBootJsonAddons() read find bootData`);
+        }
         // 依赖相关
         if (!this.bootData.dependenceInfo) this.bootData.dependenceInfo = DEFAULT_DEPENDENCE_INFO;
         if (!this.bootData.addonPlugin) this.bootData.addonPlugin = DEFAULT_ADDON_PLUGIN;
@@ -408,16 +517,20 @@ export class ProcessGamePackage {
     }
 
     async packageMod() {
+        if (!this.bootData) {
+            console.error(`ERROR packageMod() cannot read bootData`);
+            throw new Error(`ERROR packageMod() read find bootData`);
+        }
         // 打包成 zip
         console.log(`开始打包 ${this.modDir} 模组为压缩文件...`)
         let zip = new JSZip();
         for (let fileListRequired of [
-            this.modFilesTwineNew,
-            this.modFilesScriptNormal,
-            this.modFilesStyleNew,
-            this.modFilesImg,
-            this.modFilesAddition
-        ]) {
+            this.modFilesTwineNew!,
+            this.modFilesScriptNormal!,
+            this.modFilesStyleNew!,
+            this.modFilesImg!,
+            this.modFilesAddition!,
+        ] as string[][]) {
             for (let filepath of fileListRequired) {
                 let absolutePath = path.join(DIR_MODS, this.modDir, filepath);
                 let content = await promisify(fs.readFile)(absolutePath);
@@ -430,7 +543,7 @@ export class ProcessGamePackage {
             this.bootData.scriptFileList_preload,
             this.bootData.scriptFileList_earlyload,
             this.bootData.scriptFileList_inject_early,
-        ]) {
+        ] as string[][]) {
             if (!fileListOptional) {
                 continue
             }
@@ -452,18 +565,23 @@ export class ProcessGamePackage {
     }
 
     async remoteLoadTest() {
+        if (!this.bootData) {
+            console.error(`ERROR remoteLoadTest() cannot read bootData`);
+            throw new Error(`ERROR remoteLoadTest() read find bootData`);
+        }
         // 通过填写 modList.json 远程加载模组方便测试
         await promisify(fs.rename)(
             path.join(DIR_RESULTS, `${this.bootData.name}.mod.zip`),
             path.join(DIR_MODLOADER_BUILT_MODS, `${this.bootData.name}.mod.zip`)
-        ).catch(err => {});
+        ).catch(err => {
+        });
 
-        await promisify(fs.access)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`)).catch(err => {
-            fs.writeFileSync(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify([
-                `mods/${this.bootData.name}.mod.zip`
+        await promisify(fs.access)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`)).catch(async (err) => {
+            return await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify([
+                `mods/${this.bootData!.name}.mod.zip`
             ]));
         });
-        let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`));
+        let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), 'utf-8');
         let modListData = JSON.parse(modListDataBuffer);
         if (!modListData.includes(`mods/${this.bootData.name}.mod.zip`)) {
             modListData.push(`mods/${this.bootData.name}.mod.zip`);

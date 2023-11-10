@@ -3,7 +3,7 @@ import {
     PreProcessModI18N,
     ProcessGamePassage,
     ProcessGamePackage
-} from "./src/core.js";
+} from "./core";
 import child_process from "child_process";
 
 
@@ -43,6 +43,6 @@ function runLocalServer() {
     await Promise.all([
         processModLoader(),
         processI18N(),
-        processMod()
+        processMod(),
     ])
 })();
