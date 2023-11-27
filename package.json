@@ -5,7 +5,9 @@
   "scripts": {
     "build:w": "webpack -w -c ./webpack.config.js",
     "build": "webpack -c ./webpack.config.js",
-    "test-js": "node ./dist/main.js \".\""
+    "test-js": "node ./dist/main.js \".\"",
+    "========================================": "",
+    "generate-diff": "node ./repository/sugarcube-2-ModLoader/mod/Diff3WayMerge/dist-tool/make-mod-diff.js ./data/diff/remy-love"
   },
   "keywords": [],
   "dependencies": {

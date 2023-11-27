@@ -11,7 +11,7 @@ if (!process.argv[2]) {
 config()
 
 /** PATHS */
-export const DIR_ROOT = path.resolve(path.dirname(process.argv[2]), "../");
+export const DIR_ROOT = path.resolve(path.dirname(process.argv[2]));
 export const DIR_REPOSITORY = path.join(DIR_ROOT, "repository")
 export const DIR_GAME_REPO_ROOT = path.join(DIR_REPOSITORY, "degrees-of-lewdity")
 export const DIR_MODLOADER_REPO_ROOT = path.join(DIR_REPOSITORY, "sugarcube-2-ModLoader")
@@ -22,6 +22,7 @@ export const DIR_DATA = path.join(DIR_ROOT, 'data');
 export const DIR_DATA_PASSAGE = path.join(DIR_DATA, "passage");
 export const DIR_DATA_PASSAGE_SOURCE = path.join(DIR_DATA_PASSAGE, "source");
 export const DIR_DATA_TEMP = path.join(DIR_DATA, "tmp");
+export const DIR_DATA_DIFF = path.join(DIR_DATA, "diff");
 export const DIR_MODS = path.join(DIR_ROOT, 'mods');
 export const DIR_RESULTS = path.join(DIR_ROOT, 'results');
 
@@ -31,6 +32,11 @@ export const URL_GAME_REPO_REMOTE = "https://gitgud.io/Vrelnir/degrees-of-lewdit
 export const URL_GAME_REPO_COMMITS = "https://gitgud.io/api/v4/projects/8430/repository/commits";
 export const URL_GAME_REPO_ZIP = "https://gitgud.io/Vrelnir/degrees-of-lewdity/-/archive/master/degrees-of-lewdity-master.zip";
 export const URL_MODLOADER_REPO = "https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader";
+export const URL_MODLOADER_BUILD_RELEASE_API = "https://api.github.com/repos/Lyoko-Jeremie/DoLModLoaderBuild/releases/latest"
+export const URL_MODI18N_BUILD_RELEASE_API = "https://api.github.com/repos/NumberSir/DoL-I18n-Build/releases/latest"
+export const URL_GITHUB_PROXY = "https://mirror.ghproxy.com"
+
+export const URL_ADDON_TWEE_REPLACER_BOOT = "https://raw.githubusercontent.com/Lyoko-Jeremie/Degrees-of-Lewdity_Mod_TweeReplacer/master/boot.json"
 
 /** MISC */
 export const BOOT_KEYS = {
@@ -49,6 +55,9 @@ export const BOOT_KEYS = {
         "scriptFileList_inject_early": [],
         "scriptFileList_earlyload": [],
         "scriptFileList_preload": [],
+
+        "additionBinaryFile": [],
+        "additionDir": [],
 
         "addonPlugin": [],
         "dependenceInfo": [],
