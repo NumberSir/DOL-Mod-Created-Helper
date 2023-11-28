@@ -14,8 +14,6 @@ import {
     DIR_DATA_PASSAGE,
     DIR_GAME_REPO_ROOT,
     DIR_RESULTS,
-    DEFAULT_DEPENDENCE_INFO,
-    DEFAULT_ADDON_PLUGIN,
     DIR_DATA_TEMP,
     DIR_MODLOADER_BUILT_ROOT,
     DIR_MODLOADER_BUILT_MODS,
@@ -36,26 +34,37 @@ import {promisify} from "util";
 import {osLocale} from "os-locale";
 import axios from "axios";
 import JSZip from 'jszip';
-import {has, get} from 'lodash';
+import {has} from 'lodash';
 
-import fs, {createWriteStream} from "fs";
+import fs from "fs";
 import path from "path";
 import https from "https";
 import * as console from "console";
-import {TweeReplacerParam} from "./builtins/twee-replacer";
+import {AddonTweeReplacer, TweeReplacerParam} from "./builtins/twee-replacer";
+import {
+    deleteFindStringBackward, deleteFindStringBothward,
+    deleteFindStringForward,
+    insertFindStringBackward, insertFindStringBothward,
+    insertFindStringForward
+} from "./utils/diff-utils";
+import {ERROR, WARN, INFO} from "./log";
 
 /**
  * 新建临时文件夹和目标文件夹
  */
 export async function initDirs() {
-    for (let dir of [
+    for (const dir of [
         DIR_DATA_TEMP, DIR_MODLOADER_BUILT_ROOT, DIR_DATA,
         DIR_MODS, DIR_DATA_PASSAGE, DIR_RESULTS,
         DIR_MODLOADER_BUILT_MODS,
         DIR_DATA_DIFF
     ]) {
         await promisify(fs.access)(dir).catch(async () => {
+            // 不存在就新建
             return await promisify(fs.mkdir)(dir, {recursive: true});
+        }).catch(err => {
+            console.error(ERROR(`[ERROR] in initDirs() while initializing ${dir}!\n`), err)
+            return Promise.reject(err);
         });
     }
 }
@@ -68,27 +77,35 @@ export class PreProcessModLoader {
      * 要不要重复下载
      */
     async judgeIsLatest() {
-        console.log("Starting to fetch latest ModLoader version...")
-        let localIdFile = path.join(DIR_DATA_TEMP, "modloader-id.txt");
-        let response = await axios.get(
+        console.info("[INFO] Starting to fetch latest ModLoader version...")
+        const localIdFile = path.join(DIR_DATA_TEMP, "modloader-id.txt");
+        const response = await axios.get(
             URL_MODLOADER_BUILD_RELEASE_API,
             {
                 httpsAgent: new https.Agent({rejectUnauthorized: false}),
                 headers: GITHUB_HEADERS
             },
-        );
-        let latestId = response.data.assets[0].id;
-        if (
-            !await promisify(fs.exists)(localIdFile)
-            || !await promisify(fs.exists)(path.join(DIR_DATA_TEMP, "modloader.zip"))
-        ) {
-            console.log(`Initializing... writing in latest ModLoader version: ${latestId}`)
-            await promisify(fs.writeFile)(localIdFile, latestId.toString());
+        ).catch(err => {
+            console.error(ERROR(`[ERROR] in judgeIsLatest() while requesting ${URL_MODLOADER_BUILD_RELEASE_API}!\n`), err)
+            return Promise.reject(err);
+        });
+
+        const latestId = response.data["assets"][0]["id"];
+        console.info(INFO("[INFO] The latest ModLoader version has been fetched done!"))
+        if (!await promisify(fs.exists)(localIdFile) || !await promisify(fs.exists)(path.join(DIR_DATA_TEMP, "modloader.zip"))) {
+            console.warn(WARN(`[WARN] Writing in latest ModLoader version: ${latestId}`))
+            await promisify(fs.writeFile)(localIdFile, latestId.toString()).catch(err => {
+                console.error(ERROR("[ERROR] in judgeIsLatest() while writing in latestId!\n"), err);
+                return Promise.reject(err);
+            });
             return false;
         }
 
-        let localId = (await promisify(fs.readFile)(localIdFile)).toString();
-        return localId === latestId.toString();
+        let localId = await promisify(fs.readFile)(localIdFile).catch(err => {
+            console.error(ERROR("[ERROR] in judgeIsLatest() while reading localId!\n"), err);
+            return Promise.reject(err);
+        });
+        return localId.toString() === latestId.toString();
     }
 
     /**
@@ -97,19 +114,22 @@ export class PreProcessModLoader {
     async downloadLatestBuiltModLoader() {
         let isLatest = await this.judgeIsLatest();
         if (isLatest) {
-            console.log("ModLoader is latest already!")
+            console.warn(WARN("[WARN] ModLoader has already been the latest!"))
             return
         }
 
-        console.log("Starting to download pre-compiled ModLoader...")
+        console.info("[INFO] Starting to download pre-compiled ModLoader...")
         let response = await axios.get(
             URL_MODLOADER_BUILD_RELEASE_API,
             {
                 httpsAgent: new https.Agent({rejectUnauthorized: false}),
                 headers: GITHUB_HEADERS
             }
-        );
-        let downloadUrl = response.data.assets[0].browser_download_url;
+        ).catch(err => {
+            console.error(ERROR(`[ERROR] in downloadLatestBuiltModLoader() while requesting ${URL_MODLOADER_BUILD_RELEASE_API}!\n`), err);
+            return Promise.reject(err);
+        });
+        let downloadUrl = response.data["assets"][0]["browser_download_url"];
 
         let language = await osLocale();
         if (language === "zh-CN") downloadUrl = `${URL_GITHUB_PROXY}/${downloadUrl}`;  // 镜像
@@ -126,19 +146,22 @@ export class PreProcessModLoader {
                 ))
                 writeStream.on('finish', async () => {
                     try {
-                        console.log("ModLoader downloaded done!")
+                        console.info(INFO("[INFO] Pre-commpiled ModLoader has been downloaded done!"))
                         await this.extractBuiltModLoader();
                         resolve();
-                    } catch (e) {
-                        console.error(e);
-                        reject(e);
+                    } catch (err) {
+                        console.error(ERROR("[ERROR] in downloadLatestBuiltModLoader() while downloading!\n"), err);
+                        reject(err);
                     }
                 });
-                writeStream.on('error', (e: any) => {
-                    console.error(e);
-                    reject(e);
+                writeStream.on('error', (err: any) => {
+                    console.error(ERROR("[ERROR] in downloadLatestBuiltModLoader() while writing in!\n"), err);
+                    reject(err);
                 });
             });
+        }).catch(err => {
+            console.error(ERROR(`[ERROR] in downloadLatestBuiltModLoader() while requesting ${downloadUrl}!\n`), err);
+            return Promise.reject(err);
         });
     }
 
@@ -146,24 +169,41 @@ export class PreProcessModLoader {
      * 解压预编译好的 ModLoader
      */
     async extractBuiltModLoader() {
+        console.info("[INFO] Starting to extract pre-compiled ModLoader...")
         let zip = new JSZip();
-        let binary = await promisify(fs.readFile)(path.join(DIR_DATA_TEMP, "modloader.zip")).catch(err => {});
+        let binary = await promisify(fs.readFile)(path.join(DIR_DATA_TEMP, "modloader.zip")).catch(err => {
+            console.error(ERROR("[ERROR] in extractBuiltModLoader() while reading modloader.zip!\n"), err);
+            return Promise.reject(err);
+        });
         if (!binary) {
-            console.error("ERROR extractBuiltModLoader() cannot read modloader.zip");
-            throw new Error("ERROR extractBuiltModLoader() cannot read modloader.zip");
+            console.error(ERROR("[ERROR] in extractBuiltModLoader() cannot read modloader.zip!"));
+            throw new Error("[ERROR] in extractBuiltModLoader() cannot read modloader.zip!");
         }
-        let modLoaderPackage = await zip.loadAsync(binary);
+        let modLoaderPackage = await zip.loadAsync(binary).catch(err => {
+            console.error(ERROR("[ERROR] in extractBuiltModLoader() while loading modloader.zip!\n"), err);
+            return Promise.reject(err);
+        });
         let zipFiles = modLoaderPackage.files;
 
         for (let filepath of Object.keys(zipFiles)) {
             let destination = path.join(DIR_MODLOADER_BUILT_ROOT, filepath);
             if (zipFiles[filepath].dir) {
-                return await promisify(fs.mkdir)(destination, {recursive: true});
+                return await promisify(fs.mkdir)(destination, {recursive: true}).catch(err => {
+                    console.error(ERROR(`[ERROR] in extractBuiltModLoader() while making dir of ${destination}!\n`), err);
+                    return Promise.reject(err);
+                });
             } else {
-                let buffer = await zipFiles[filepath].async("nodebuffer");
-                await promisify(fs.writeFile)(destination, buffer);
+                let buffer = await zipFiles[filepath].async("nodebuffer").catch(err => {
+                    console.error(ERROR(`[ERROR] in extractBuiltModLoader() while writing in ${filepath}!\n`), err);
+                    return Promise.reject(err);
+                });
+                await promisify(fs.writeFile)(destination, buffer).catch(err => {
+                    console.error(ERROR(`[ERROR] in extractBuiltModLoader() while writing in ${destination}!\n`), err);
+                    return Promise.reject(err);
+                });
             }
         }
+        console.info(INFO("[INFO] Pre-compiled ModLoader has been extracted done!"))
     }
 }
 
@@ -175,7 +215,7 @@ export class PreProcessModI18N {
      * 要不要重复下载
      */
     async judgeIsLatest() {
-        console.log("Starting to fetch latest I18N mod version...")
+        console.info("[INFO] Starting to fetch latest I18N mod version...")
         let localIdFile = path.join(DIR_DATA_TEMP, "i18n-id.txt");
         let response = await axios.get(
             URL_MODI18N_BUILD_RELEASE_API,
@@ -183,16 +223,27 @@ export class PreProcessModI18N {
                 httpsAgent: new https.Agent({rejectUnauthorized: false}),
                 headers: GITHUB_HEADERS
             }
-        );
-        let latestId = response.data.assets[0].id;
+        ).catch(err => {
+            console.error(ERROR(`[ERROR] in judgeIsLatest() while requesting ${URL_MODI18N_BUILD_RELEASE_API}!\n`), err);
+            return Promise.reject(err);
+        });
+
+        console.info(INFO("[INFO] The latest I18N mod version has been fetched done!"))
+        let latestId = response.data["assets"][0]['id'];
         if (!await promisify(fs.exists)(localIdFile) || !await promisify(fs.exists)(path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip"))) {
-            console.log(`Initializing... writing in latest I18N mod version: ${latestId}`)
-            await promisify(fs.writeFile)(localIdFile, latestId.toString());
+            console.warn(WARN(`[WARN] Writing in latest I18N mod version: ${latestId}`))
+            await promisify(fs.writeFile)(localIdFile, latestId.toString()).catch(err => {
+                console.error(ERROR("[ERROR] in judgeIsLatest() while writing in latestId!\n"), err);
+                return Promise.reject(err);
+            });
             return false;
         }
 
-        let localId = (await promisify(fs.readFile)(localIdFile)).toString();
-        return localId === latestId.toString();
+        let localId = await promisify(fs.readFile)(localIdFile).catch(err => {
+            console.error(ERROR("[ERROR] in judgeIsLatest() while reading localId!\n"), err);
+            return Promise.reject(err);
+        });
+        return localId.toString() === latestId.toString();
     }
 
     /**
@@ -200,21 +251,27 @@ export class PreProcessModI18N {
      */
     async downloadLatestModI18N() {
         let isLatest = await this.judgeIsLatest();
-        let language = await osLocale();
+        let language = await osLocale().catch(err => {
+            console.error(ERROR("[ERROR] in downloadLatestModI18N() while getting locale!\n"), err);
+            return Promise.reject(err);
+        });
         if (isLatest || language !== "zh-CN") {
-            console.log("I18N mod is latest already!")
+            console.warn(WARN("[WARN] I18N mod is latest already!"))
             return
         }
 
-        console.log("Starting to download I18N mod...")
+        console.info("[INFO] Starting to download I18N mod...")
         let response = await axios.get(
             URL_MODI18N_BUILD_RELEASE_API,
             {
                 httpsAgent: new https.Agent({rejectUnauthorized: false}),
                 headers: GITHUB_HEADERS
             }
-        );
-        let downloadUrl = response.data.assets[0].browser_download_url;
+        ).catch(err => {
+            console.error(ERROR("[ERROR] in downloadLatestModI18N() while fetching url!\n"), err);
+            return Promise.reject(err);
+        });
+        let downloadUrl = response.data["assets"][0]["browser_download_url"];
 
         downloadUrl = `https://mirror.ghproxy.com/${downloadUrl}`;
         await axios({
@@ -229,19 +286,22 @@ export class PreProcessModI18N {
                 ))
                 writeStream.on('finish', async () => {
                     try {
-                        console.log("I18N mod downloaded done!")
+                        console.info(INFO("[INFO] I18N mod downloaded done!"))
                         await this.remoteLoadTest()
                         resolve();
-                    } catch (e) {
-                        console.error(e);
-                        reject(e);
+                    } catch (err) {
+                        console.error(ERROR("[ERROR] in downloadLatestModI18N() while downloading!\n"), err);
+                        reject(err);
                     }
                 });
-                writeStream.on('error', (e: any) => {
-                    console.error(e);
-                    reject(e);
+                writeStream.on('error', (err: any) => {
+                    console.error(ERROR("[ERROR] in downloadLatestModI18N() while writing!\n"), err);
+                    reject(err);
                 });
             });
+        }).catch(err => {
+            console.error(ERROR("[ERROR] in downloadLatestModI18N() while requesting!\n"), err);
+            return Promise.reject(err);
         });
     }
 
@@ -250,21 +310,32 @@ export class PreProcessModI18N {
      */
     async remoteLoadTest() {
         // 通过填写 modList.json 远程加载模组
+        console.info("[INFO] Starting to process I18N remote loading...")
         await promisify(fs.copyFile)(
             path.join(DIR_DATA_TEMP, "i18n.zip"),
             path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip")
-        ).catch(err => {});
+        ).catch(err => {
+            console.error(ERROR("[ERROR] in remoteLoadTest() while copying i18n.zip!\n"), err);
+            return Promise.reject(err);
+        });
 
-        await promisify(fs.access)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`)).catch(async (err) => {
+        await promisify(fs.access)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`)).catch(async () => {
             return await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify(["mods/i18n.zip"]));
         });
-        let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), 'utf-8');
+        let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), 'utf-8').catch(err => {
+            console.error(ERROR("[ERROR] in remoteLoadTest() while reading modList!\n"), err);
+            return Promise.reject(err);
+        });
         let modListData = JSON.parse(modListDataBuffer);
         if (!modListData.includes("mods/i18n.zip")) {
             modListData.push("mods/i18n.zip");
         }
 
-        await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, "modList.json"), JSON.stringify(modListData));
+        await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, "modList.json"), JSON.stringify(modListData)).catch(err => {
+            console.error(ERROR("[ERROR] in remoteLoadTest() while writing in modList!\n"), err);
+            return Promise.reject(err);
+        });
+        console.info(INFO("[INFO] I18N remote loading has been processed done!"))
     }
 }
 
@@ -272,10 +343,7 @@ export class PreProcessModI18N {
  * 处理游戏段落相关，方便比对差异与自动填充
  */
 export class ProcessGamePassage {
-    constructor(
-        public modDir: string
-    ) {
-    }
+    constructor(public modDir: string) {}
 
     /**
      * 获取所有段落和段落名
@@ -283,14 +351,15 @@ export class ProcessGamePassage {
      * @param name 源码为 source, 其它为模组名
      */
     async getAllPassages(dirPath: string, name: string): Promise<GetAllPassageReturnType> {
-        console.log(`Starting to fetch all passages info of ${name} ...`)
+        console.info(`[INFO] Starting to fetch all passages info of ${name} ...`)
         let outputDir = path.join(DIR_DATA_PASSAGE, name);
         await promisify(fs.access)(outputDir).catch(async () => {
-            await promisify(fs.mkdir)(outputDir).catch(async (err) => {
-                console.error(`ERROR when mkdir of ${outputDir}`);
+            await promisify(fs.mkdir)(outputDir, {recursive: true}).catch(async (err) => {
+                console.error(ERROR(`[ERROR] in getAllPassages() while making dir of ${outputDir}!\n`), err);
                 return Promise.reject(err);
             })
         })
+
         let allPassages: AllPassageInfoType = [];
         let allPassagesNames: string[] = [];
         let allPassagesFile = path.join(outputDir, "all_passages.json");
@@ -299,10 +368,12 @@ export class ProcessGamePassage {
         let allTwineFiles = walk(dirPath, onlyTwineFileFilter);
         for (let file of allTwineFiles) {
             let content = await promisify(fs.readFile)(file).catch(err => {
-                return Promise.reject(err)
+                console.error(ERROR(`[ERROR] in getAllPassages() while reading ${file}!\n`), err);
+                return Promise.reject(err);
             });
+
             let contentSlice = content.toString().split(":: ");
-            contentSlice = contentSlice.filter((item, idx) => idx % 2 !== 0);
+            contentSlice = contentSlice.filter((_, idx) => idx % 2 !== 0);
             // slice 中的偶数元素包含标题
 
             for (let text of contentSlice) {
@@ -333,7 +404,7 @@ export class ProcessGamePassage {
             return Promise.reject(err)
         });
 
-        console.log(`All passage info of ${name} has been fetched done！${allPassagesNames.length} passages in total.`)
+        console.info(INFO(`[INFO] All passage info of ${name} has been fetched done！${allPassagesNames.length} passages in total.`))
         return [allPassagesNames, allPassages]
     }
 
@@ -365,10 +436,10 @@ export class ProcessGamePassage {
         let samePassagesFile = path.join(outputDir, "same_passages.json");
         let samePassagesNamesFile = path.join(outputDir, "same_passages_names.json");
 
-        let [sourcePassagesNames, sourcePassages] = await this.getAllPassagesSource();
-        let [modPassagesNames, modPassages] = await this.getAllPassagesMod();
+        let [sourcePassagesNames, _] = await this.getAllPassagesSource();
+        let [__, modPassages] = await this.getAllPassagesMod();
 
-        console.log("Starting to fetch modified passages' info...");
+        console.info("[INFO] Starting to fetch modified passages' info...");
         for (let passage of modPassages) {
             if (sourcePassagesNames.includes(passage.passageName)) {
                 samePassagesNames.push(passage.passageName);
@@ -376,14 +447,10 @@ export class ProcessGamePassage {
             }
         }
 
-        await promisify(fs.writeFile)(samePassagesFile, JSON.stringify(samePassages)).catch(err => {
-            return Promise.reject(err)
-        });
-        await promisify(fs.writeFile)(samePassagesNamesFile, JSON.stringify(samePassagesNames)).catch(err => {
-            return Promise.reject(err)
-        });
+        await promisify(fs.writeFile)(samePassagesFile, JSON.stringify(samePassages));
+        await promisify(fs.writeFile)(samePassagesNamesFile, JSON.stringify(samePassagesNames));
 
-        console.log(`All modified passages' info have been fetched done! ${samePassagesNames.length} in total.`);
+        console.info(INFO(`[INFO] All modified passages' info have been fetched done! ${samePassagesNames.length} in total.`));
         return {
             name: samePassagesNames,
             passage: samePassages
@@ -399,20 +466,21 @@ export class ProcessGamePassage {
         let outputDir = path.join(DIR_DATA_PASSAGE, name, "all_passages");
         await promisify(fs.access)(outputDir).catch(async () => {
             await promisify(fs.mkdir)(outputDir).catch(err => {
-                console.error(`ERROR when mkdir of ${outputDir}`);
+                console.error(ERROR(`[ERROR] in writePassages() while making dir of ${outputDir}!\n`), err);
                 return Promise.reject(err);
             })
         })
 
-        console.log("Starting to write in passages' info...");
+        console.info("[INFO] Starting to write in passages' info ...");
         for (let passage of allPassages) {
             passage.passageName = passage.passageName.replace('/', '_SLASH_');
             let passageFile = path.join(outputDir, `${passage.passageName}.twee`);
             await promisify(fs.writeFile)(passageFile, passage.passageFull).catch(err => {
+                console.error(ERROR(`[ERROR] in writePassages() while writing in ${passageFile}!\n`), err);
                 return Promise.reject(err)
             });
         }
-        console.log("All passages' info have been written done!")
+        console.info(INFO("[INFO] All passages' info have been written done!"))
     }
 
     /**
@@ -437,7 +505,6 @@ export class ProcessGamePassage {
      * @param samePassages 修改过的段落完整信息
      */
     async preProcessForDiffGeneration(samePassagesNames: string[], samePassages: PassageInfoType[]) {
-        console.log("Starting to process for diff generation ...");
         const bootJsonFilePathSource = path.join(DIR_MODLOADER_REPO_ROOT, "mod", "Diff3WayMerge", "mod", "boot.json");
         const bootJsonFilePath = path.join(DIR_DATA_DIFF, this.modDir, "boot.json");
         const diffModDirs = [
@@ -446,10 +513,11 @@ export class ProcessGamePassage {
             path.join(DIR_DATA_DIFF, this.modDir, "patch_diff"),
         ]
 
+        console.info("[INFO] Starting to process for diff generation ...");
         for (const targetDir of diffModDirs) {
             await promisify(fs.access)(targetDir).catch(async () => {
                 await promisify(fs.mkdir)(targetDir, {recursive: true}).catch(async (err) => {
-                    console.error(`ERROR when mkdir of ${targetDir}`);
+                    console.error(ERROR(`[ERROR] in preProcessForDiffGeneration() while making dir of ${targetDir}!\n`), err);
                     return Promise.reject(err);
                 })
             })
@@ -458,21 +526,30 @@ export class ProcessGamePassage {
         await promisify(fs.copyFile)(
             bootJsonFilePathSource,
             bootJsonFilePath
-        ).catch(e => {});
+        ).catch(err => {
+            console.error(ERROR(`[ERROR] in preProcessForDiffGeneration() while copying boot file of ${bootJsonFilePathSource}!\n`), err);
+            return Promise.reject(err);
+        });
 
         for (const passageName of samePassagesNames) {
             await promisify(fs.copyFile)(
                 path.join(DIR_DATA_PASSAGE_SOURCE, "all_passages", `${passageName}.twee`),
                 path.join(diffModDirs[1], `${passageName}.twee`)
-            ).catch(e => {});
+            ).catch(err => {
+                console.error(ERROR(`[ERROR] in preProcessForDiffGeneration() while copying twine file of ${passageName}!\n`), err);
+                return Promise.reject(err);
+            });
         }
 
         for (const passageInfo of samePassages) {
             const content = passageInfo.passageFull;
             const filePath = path.join(diffModDirs[0], `${passageInfo.passageName}.twee`);
-            await promisify(fs.writeFile)(filePath, content).catch(e => {})
+            await promisify(fs.writeFile)(filePath, content).catch(err => {
+                console.error(ERROR(`[ERROR] in preProcessForDiffGeneration() while writing in ${filePath}!\n`), err);
+                return Promise.reject(err);
+            });
         }
-        console.log("Processed done!")
+        console.info(INFO("[INFO] Diff generation has been processed done!"))
     }
 
     /**
@@ -492,11 +569,17 @@ export class ProcessGamePassage {
      * @param samePassagesNames 修改过的段落名
      * @param samePassages 修改过的段落完整信息
      */
-    async Diff2BootJson(samePassagesNames: string[], samePassages: PassageInfoType[]) {
+    async diff2BootJson(samePassagesNames: string[], samePassages: PassageInfoType[]): Promise<AddonTweeReplacer> {
         const diffFileDir = path.join(DIR_DATA_DIFF, this.modDir, "patch_diff");
         let replaceParams: TweeReplacerParam[] = [];
+
+        console.info("[INFO] Starting to auto generate tweeReplacer ...")
+        let [successCount, failureCount] = [0, 0];
         for (const [passageIdx, samePassageName] of samePassagesNames.entries()) {
-            const diffFileContent = await promisify(fs.readFile)(path.join(diffFileDir, `${samePassageName}.twee.diff`), 'utf-8');
+            const diffFileContent = await promisify(fs.readFile)(path.join(diffFileDir, `${samePassageName}.twee.diff`), 'utf-8').catch(err => {
+                console.error(ERROR(`[ERROR] in diff2BootJson() while reading ${samePassageName}.twee.diff!\n`), err);
+                return Promise.reject(err);
+            });
             const diffDataList: Diff[] = JSON.parse(diffFileContent);
 
             const passageInfo = samePassages[passageIdx];
@@ -510,18 +593,23 @@ export class ProcessGamePassage {
                         switch (diffIdx) {
                             case 0:
                                 // 在开头，直接向前找
-                                [findString, replace] = this._insertFindStringForward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                [findString, replace] = insertFindStringForward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 break;
                             case diffDataList.length:
                                 // 在末尾，直接往回找
-                                [findString, replace] = this._insertFindStringBackward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                [findString, replace] = insertFindStringBackward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 break;
                             default:
                                 // 先往回找
-                                [findString, replace] = this._insertFindStringBackward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                [findString, replace] = insertFindStringBackward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 // 往回没找到，再向前找
                                 if (findString === "") {
-                                    [findString, replace] = this._insertFindStringForward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                    [findString, replace] = insertFindStringForward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                }
+
+                                // 单侧找不到，同时向前向后找
+                                if (findString === "") {
+                                    [findString, replace] = insertFindStringBothward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 }
                         } break;
                     case DiffOperator.DELETE:
@@ -533,29 +621,36 @@ export class ProcessGamePassage {
                         switch (diffIdx) {
                             case 0:
                                 // 在开头，直接向前找
-                                [findString, replace] = this._deleteFindStringForward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                [findString, replace] = deleteFindStringForward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 break;
                             case diffDataList.length:
                                 // 在末尾，直接往回找
-                                [findString, replace] = this._deleteFindStringBackward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                [findString, replace] = deleteFindStringBackward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 break;
                             default:
                                 // 先往回找
-                                [findString, replace] = this._deleteFindStringBackward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                [findString, replace] = deleteFindStringBackward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 // 往回没找到，再向前找
                                 if (findString === "") {
-                                    [findString, replace] = this._deleteFindStringForward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                    [findString, replace] = deleteFindStringForward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
+                                }
+
+                                // 单侧找不到，同时向前向后找
+                                if (findString === "") {
+                                    [findString, replace] = deleteFindStringBothward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 }
                         } break;
                 }
 
                 if (findString) {
+                    successCount++;
                     replaceParams.push({
                         passage: samePassageName,
                         findString: findString,
                         replace: replace
                     })
                 } else {
+                    failureCount++
                     replaceParams.push({
                         passage: samePassageName,
                         findRegex: findString,
@@ -564,106 +659,15 @@ export class ProcessGamePassage {
                     })
                 }
             }
-
-            const testFile = path.join(DIR_DATA_DIFF, this.modDir, "test.json");
-            await promisify(fs.writeFile)(
-                testFile, JSON.stringify(replaceParams)
-            ).catch(e => {})
         }
-    }
 
-    _deleteFindStringForward(diffIdx: number, diffData: Diff, diffDataList: Diff[], passageInfo: PassageInfoType, findString: string, replace: string) {
-        for (let i = 1; diffIdx+i < diffDataList.length; i++) {
-            // 如果不是原文就继续向前找
-            if (diffDataList[diffIdx+i].op !== DiffOperator.EQUAL) {
-                // 都找到下一个要插入的了，还是重复
-                if (diffDataList[diffIdx+i].op === DiffOperator.INSERT) break;
-                continue;
-            }
-
-            let addChar = "";
-            for (let char of diffDataList[diffIdx+i].text) {
-                addChar = `${addChar}${char}`;
-                // 出现了多次
-                if (passageInfo.passageBody.split(addChar).length-1 > 1) continue;
-                findString = `${diffData.text}${addChar}`;
-                replace = addChar;
-                break;
-            }
-        }
-        return [findString, replace];
-    }
-
-    _deleteFindStringBackward(diffIdx: number, diffData: Diff, diffDataList: Diff[], passageInfo: PassageInfoType, findString: string, replace: string) {
-        for (let i = 1; diffIdx-i > 0; i++) {
-            // 如果不是原文就继续往回找
-            if (diffDataList[diffIdx-i].op !== DiffOperator.EQUAL) {
-                // 都找到下一个要插入的了，还是重复
-                if (diffDataList[diffIdx-i].op === DiffOperator.INSERT) break;
-                continue;
-            }
-
-            // 反着加字符
-            const text = diffDataList[diffIdx-i].text.split("").reverse().join("");
-            let addChar = "";
-            for (let char of text) {
-                addChar = `${char}${addChar}`;
-                // 出现了多次
-                if (passageInfo.passageBody.split(addChar).length - 1 > 1) continue;
-                findString = `${addChar}${diffData.text}`;
-                replace = addChar;
-                break;
-            }
-        }
-        return [findString, replace];
-    }
-
-    _insertFindStringForward(diffIdx: number, diffData: Diff, diffDataList: Diff[], passageInfo: PassageInfoType, findString: string, replace: string) {
-        for (let i = 1; diffIdx+i < diffDataList.length; i++) {
-            // 如果不是原文就继续向前找
-            if (diffDataList[diffIdx+i].op !== DiffOperator.EQUAL) {
-                // 都找到下一个要插入的了，还是重复
-                if (diffDataList[diffIdx+i].op === DiffOperator.INSERT) break;
-                continue;
-            }
-
-            let addChar = "";
-            for (let char of diffDataList[diffIdx+i].text) {
-                addChar = `${addChar}${char}`;
-                // 出现了多次
-                if (passageInfo.passageBody.split(addChar).length-1 > 1) continue;
-                findString = addChar;
-                replace = `${diffData.text}${addChar}`;
-                break;
-            }
-            break;
-        }
-        return [findString, replace];
-    }
-
-    _insertFindStringBackward(diffIdx: number, diffData: Diff, diffDataList: Diff[], passageInfo: PassageInfoType, findString: string, replace: string) {
-        for (let i = 1; diffIdx-i > 0; i++) {
-            // 如果不是原文就继续往回找
-            if (diffDataList[diffIdx-i].op !== DiffOperator.EQUAL) {
-                // 都找到下一个要插入的了，还是重复
-                if (diffDataList[diffIdx-i].op === DiffOperator.INSERT) break;
-                continue;
-            }
-
-            // 反着加字符
-            const text = diffDataList[diffIdx-i].text.split("").reverse().join("");
-            let addChar = "";
-            for (let char of text) {
-                addChar = `${char}${addChar}`;
-                // 出现了多次
-                if (passageInfo.passageBody.split(addChar).length-1 > 1) continue;
-                findString = addChar;
-                replace = `${addChar}${diffData.text}`;
-                break;
-            }
-            break;
-        }
-        return [findString, replace];
+        console.info(INFO(`[INFO] tweeReplacer has been auto generated done! succeeded: ${successCount}, failed: ${failureCount}`))
+        return {
+            modName: "TweeReplacer",
+            addonName: "TweeReplacerAddon",
+            modVersion: "1.0.0",
+            params: replaceParams
+        };
     }
 }
 
@@ -694,17 +698,19 @@ export class ProcessGamePackage {
      * 获取模组文件结构
      */
     async fetchModStructure() {
-        console.log(`Starting to fetch file structures of mod ${this.modDir} ...`)
+        console.info(`[INFO] Starting to fetch file structures of mod ${this.modDir} ...`)
         let buffer = await promisify(fs.readFile)(path.join(DIR_MODS, this.modDir, "boot.json")).catch(err => {
+            console.error(ERROR(`[ERROR] in fetchModStructure() while reading boot of ${this.modDir}!\n`), err);
+            return Promise.reject(err);
         });
         if (!buffer) {
-            console.error(`ERROR fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
-            throw new Error(`ERROR fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
+            console.error(ERROR(`[ERROR] in fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`));
+            throw new Error(`[ERROR] in fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
         }
         this.bootData = JSON.parse(buffer.toString());
         if (!this.bootData) {
-            console.error(`ERROR fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
-            throw new Error(`ERROR fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
+            console.error(ERROR(`[ERROR] in fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`));
+            throw new Error(`[ERROR] in fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
         }
 
         this.sourceFilesTwine = walk(path.join(DIR_GAME_REPO_ROOT), onlyTwineFileFilter, true);
@@ -746,18 +752,21 @@ export class ProcessGamePackage {
         this.modFilesAddition = this.modFilesAddition.filter((item) => {
             return item !== "boot.json"
         });
-        console.log(`Structure of ${this.modDir} has been fetched done!`)
+        console.info(INFO(`[INFO] Structure of ${this.modDir} has been fetched done!`))
     }
 
     /**
      * 辅助填写 boot.json
      */
     async writeBootJson() {
-        console.log(`Starting to written boot.json of ${this.modDir} ...`)
+        console.info(`[INFO] Starting to write in boot.json of ${this.modDir} ...`)
         await this.writeBootJsonFileLists();
-        await this.writeBootJsonAddons()
-        // await promisify(fs.writeFile)(path.join(DIR_RESULTS, this.modDir, "boot.json"), JSON.stringify(this.bootData)).catch(err => {});
-        console.log(`boot.json of ${this.modDir} has been written done!`)
+        // await this.writeBootJsonAddons();
+        // await promisify(fs.writeFile)(path.join(DIR_RESULTS, this.modDir, "boot.json"), JSON.stringify(this.bootData)).catch(err => {
+        //     console.error(ERROR(`[ERROR] in writeBootJson() while writing in boot of ${this.modDir}!\n`), err);
+        //     return Promise.reject(err);
+        // });
+        console.info(INFO(`[INFO] boot.json of ${this.modDir} has been written done!`))
     }
 
     /**
@@ -765,8 +774,8 @@ export class ProcessGamePackage {
      */
     async writeBootJsonFileLists() {
         if (!this.bootData) {
-            console.error(`ERROR writeBootJsonFileLists() cannot read bootData`);
-            throw new Error(`ERROR writeBootJsonFileLists() read find bootData`);
+            console.error(ERROR(`[ERROR] in writeBootJsonFileLists() cannot read bootData`));
+            throw new Error(`[ERROR] in writeBootJsonFileLists() read find bootData`);
         }
         // FileLists
         if (!this.bootData.tweeFileList) this.bootData.tweeFileList = this.modFilesTwineNew;
@@ -781,35 +790,77 @@ export class ProcessGamePackage {
     /**
      * 写入 dependenceInfo, addonPlugin
      */
-    async writeBootJsonAddons() {
+    // async writeBootJsonAddons() {
+    //     if (!this.bootData) {
+    //         console.error(`ERROR writeBootJsonAddons() cannot read bootData`);
+    //         throw new Error(`ERROR writeBootJsonAddons() read find bootData`);
+    //     }
+    //     // 依赖相关
+    //     if (!this.bootData.dependenceInfo) this.bootData.dependenceInfo = DEFAULT_DEPENDENCE_INFO;
+    //     if (!this.bootData.addonPlugin) this.bootData.addonPlugin = DEFAULT_ADDON_PLUGIN;
+    //     // console.log(`\t${this.modDir} 模组依赖列表已填写完毕！`)
+    //     return this.bootData;
+    // }
+
+    async writeBootJsonTweeReplacer(addonTweeReplacer: AddonTweeReplacer) {
+        // twee 文本替换
         if (!this.bootData) {
-            console.error(`ERROR writeBootJsonAddons() cannot read bootData`);
-            throw new Error(`ERROR writeBootJsonAddons() read find bootData`);
+            console.error(ERROR(`[ERROR] in writeBootJsonTweeReplacer() cannot read bootData`));
+            throw new Error(`[ERROR] in writeBootJsonTweeReplacer() read find bootData`);
         }
-        // 依赖相关
-        if (!this.bootData.dependenceInfo) this.bootData.dependenceInfo = DEFAULT_DEPENDENCE_INFO;
-        if (!this.bootData.addonPlugin) this.bootData.addonPlugin = DEFAULT_ADDON_PLUGIN;
-        // console.log(`\t${this.modDir} 模组依赖列表已填写完毕！`)
+
+        // 没有就不要填了
+        if (!addonTweeReplacer) return this.bootData;
+
+        let hasAddonFlag = false;
+        if (this.bootData.addonPlugin) {
+            for (const addon of this.bootData.addonPlugin) {
+                if (addon.modName === "TweeReplacer") {
+                    hasAddonFlag = true;
+                    break;
+                }
+            }
+            // 别把人家自己填的覆盖了
+            if (hasAddonFlag) return this.bootData;
+        } else {
+            this.bootData.addonPlugin = [];
+        }
+        this.bootData.addonPlugin.push(addonTweeReplacer);
+
+        let hasDependenceFlag = false;
+        if (this.bootData.dependenceInfo) {
+            for (const dependence of this.bootData.dependenceInfo) {
+                if (dependence.modName === "TweeReplacer") {
+                    hasDependenceFlag = true;
+                    break;
+                }
+            }
+            // 别把人家自己填的覆盖了
+            if (hasDependenceFlag) return this.bootData;
+        } else {
+            this.bootData.dependenceInfo = [];
+        }
+        this.bootData.dependenceInfo.push({
+            modName: "TweeReplacer",
+            version: ">=1.0.0"
+        });
+
         return this.bootData;
     }
 
-    async writeBootJsonTweeReplacer() {
-        // twee 文本替换
-    }
-
-    async writeBootJsonReplacePatcher() {
-        // js/css 文本替换
-    }
+    // async writeBootJsonReplacePatcher() {
+    //     // js/css 文本替换
+    // }
 
     /**
      * 打包模组
      */
     async packageMod() {
         if (!this.bootData) {
-            console.error(`ERROR packageMod() cannot read bootData`);
-            throw new Error(`ERROR packageMod() read find bootData`);
+            console.error(ERROR(`[ERROR] in packageMod() cannot read bootData`));
+            throw new Error(`[ERROR] in packageMod() read find bootData`);
         }
-        console.log(`Starting to pack ${this.modDir} ...`)
+        console.info(`[INFO] Starting to pack ${this.modDir} ...`)
         let zip = new JSZip();
         for (let fileListRequired of [
             this.modFilesTwineNew!,
@@ -820,7 +871,10 @@ export class ProcessGamePackage {
         ] as string[][]) {
             for (let filepath of fileListRequired) {
                 let absolutePath = path.join(DIR_MODS, this.modDir, filepath);
-                let content = await promisify(fs.readFile)(absolutePath);
+                let content = await promisify(fs.readFile)(absolutePath).catch(err => {
+                    console.error(ERROR(`[ERROR] in packageMod() while reading required ${absolutePath}!\n`), err);
+                    return Promise.reject(err);
+                });
                 zip.file(filepath, content);
             }
         }
@@ -836,7 +890,10 @@ export class ProcessGamePackage {
             }
             for (let filepath of fileListOptional) {
                 let absolutePath = path.join(DIR_MODS, this.modDir, filepath);
-                let content = await promisify(fs.readFile)(absolutePath);
+                let content = await promisify(fs.readFile)(absolutePath).catch(err => {
+                    console.error(ERROR(`[ERROR] in packageMod() while reading optional ${absolutePath}!\n`), err);
+                    return Promise.reject(err);
+                });
                 zip.file(filepath, content);
             }
         }
@@ -846,9 +903,15 @@ export class ProcessGamePackage {
             type: "nodebuffer",
             compression: "DEFLATE",
             compressionOptions: {level: 9},
+        }).catch(err => {
+            console.error(ERROR(`[ERROR] in packageMod() while zipping!\n`), err);
+            return Promise.reject(err);
         });
-        await promisify(fs.writeFile)(path.join(DIR_RESULTS, `${this.bootData.name}.mod.zip`), zipBase64, {encoding: 'utf-8'});
-        console.log(`${this.modDir} has been packed done!`)
+        await promisify(fs.writeFile)(path.join(DIR_RESULTS, `${this.bootData.name}.mod.zip`), zipBase64, {encoding: 'utf-8'}).catch(err => {
+            console.error(ERROR(`[ERROR] in packageMod() while writing in ${this.modDir}.mod.zip!\n`), err);
+            return Promise.reject(err);
+        });
+        console.info(INFO(`[INFO] ${this.modDir} has been packed done!`))
     }
 
     /**
@@ -856,32 +919,41 @@ export class ProcessGamePackage {
      */
     async remoteLoadTest() {
         if (!this.bootData) {
-            console.error(`ERROR remoteLoadTest() cannot read bootData`);
-            throw new Error(`ERROR remoteLoadTest() read find bootData`);
+            console.error(ERROR(`[ERROR] in remoteLoadTest() cannot read bootData`));
+            throw new Error(`[ERROR] in remoteLoadTest() read find bootData`);
         }
+
+        console.info(`[INFO] Starting to process remote loading of ${this.modDir} ...`)
         await promisify(fs.copyFile)(
             path.join(DIR_RESULTS, `${this.bootData.name}.mod.zip`),
             path.join(DIR_MODLOADER_BUILT_MODS, `${this.bootData.name}.mod.zip`)
         ).catch(err => {
+            console.error(ERROR(`[ERROR] in remoteLoadTest() while copying ${this.modDir}.mod.zip!\n`), err);
+            return Promise.reject(err);
         });
-        // await promisify(fs.rename)(
-        //     path.join(DIR_RESULTS, `${this.bootData.name}.mod.zip`),
-        //     path.join(DIR_MODLOADER_BUILT_MODS, `${this.bootData.name}.mod.zip`)
-        // ).catch(err => {
-        // });
 
-        await promisify(fs.access)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`)).catch(async (err) => {
+        await promisify(fs.access)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`)).catch(async () => {
             return await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify([
                 `mods/${this.bootData!.name}.mod.zip`
-            ]));
+            ])).catch(err => {
+                console.error(ERROR(`[ERROR] in remoteLoadTest() while writing in modList!\n`), err);
+                return Promise.reject(err);
+            });
         });
-        let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), 'utf-8');
+        let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), 'utf-8').catch(err => {
+            console.error(ERROR(`[ERROR] in remoteLoadTest() while reading modList!\n`), err);
+            return Promise.reject(err);
+        });
         let modListData = JSON.parse(modListDataBuffer);
         if (!modListData.includes(`mods/${this.bootData.name}.mod.zip`)) {
             modListData.push(`mods/${this.bootData.name}.mod.zip`);
         }
 
-        await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify(modListData));
+        await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify(modListData)).catch(err => {
+            console.error(ERROR(`[ERROR] in remoteLoadTest() while writing in modList!\n`), err);
+            return Promise.reject(err);
+        });
+        console.info(INFO(`[INFO] Remote loading of ${this.modDir} has been processed done!`))
     }
 }
 

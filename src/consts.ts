@@ -71,10 +71,6 @@ export const DEFAULT_DEPENDENCE_INFO = [
         "version": ">=1.6.4"
     },
     {
-        "modName": "TweeReplacer",
-        "version": ">=1.1.0"
-    },
-    {
         "modName": "ReplacePatcher",
         "version": ">=1.1.0"
     },
