@@ -8,7 +8,7 @@ import child_process from "child_process";
 import fs from 'fs';
 import {DIR_MODS} from "./consts";
 import {AddonTweeReplacer} from "./builtins/twee-replacer";
-import {INFO, WARN} from "./log";
+import {info, warn} from "./log";
 
 
 async function processModLoader() {
@@ -39,7 +39,7 @@ async function processMod() {
             const addonTweeReplacer = await gamePassage.diff2BootJson(sameResults.name, sameResults.passage);
             await gamePackage.writeBootJsonTweeReplacer(addonTweeReplacer);
         } catch (err) {
-            console.warn(WARN(`[WARN] error while running writeBootJsonTweeReplacer(): `), err)
+            warn(`[WARN] error while running writeBootJsonTweeReplacer()`)
         }
         await gamePackage.packageMod();
         await gamePackage.remoteLoadTest();
@@ -48,9 +48,9 @@ async function processMod() {
 }
 
 function runLocalServer() {
-    console.info(INFO("启动本地服务器..."))
+    info("启动本地服务器...")
     child_process.exec("start http://localhost:8000/modloader/Degrees%20of%20Lewdity%20VERSION.html.mod.html");
-    console.warn(WARN("如果浏览器没有自动启动，请手动打开\nhttp://localhost:8080/modloader/Degrees%20of%20Lewdity%20VERSION.html.mod.html\n网页"))
+    warn("如果浏览器没有自动启动，请手动打开\nhttp://localhost:8080/modloader/Degrees%20of%20Lewdity%20VERSION.html.mod.html\n网页")
     child_process.exec("anywhere -s")
 }
 

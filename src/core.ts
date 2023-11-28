@@ -47,7 +47,7 @@ import {
     insertFindStringBackward, insertFindStringBothward,
     insertFindStringForward
 } from "./utils/diff-utils";
-import {ERROR, WARN, INFO} from "./log";
+import {error, warn, info} from "./log";
 
 /**
  * 新建临时文件夹和目标文件夹
@@ -63,7 +63,7 @@ export async function initDirs() {
             // 不存在就新建
             return await promisify(fs.mkdir)(dir, {recursive: true});
         }).catch(err => {
-            console.error(ERROR(`[ERROR] in initDirs() while initializing ${dir}!\n`), err)
+            error(`[ERROR] in initDirs() while initializing ${dir}!\n`);
             return Promise.reject(err);
         });
     }
@@ -86,23 +86,23 @@ export class PreProcessModLoader {
                 headers: GITHUB_HEADERS
             },
         ).catch(err => {
-            console.error(ERROR(`[ERROR] in judgeIsLatest() while requesting ${URL_MODLOADER_BUILD_RELEASE_API}!\n`), err)
+            error(`[ERROR] in judgeIsLatest() while requesting ${URL_MODLOADER_BUILD_RELEASE_API}!\n`);
             return Promise.reject(err);
         });
 
         const latestId = response.data["assets"][0]["id"];
-        console.info(INFO("[INFO] The latest ModLoader version has been fetched done!"))
+        info("[INFO] The latest ModLoader version has been fetched done!")
         if (!await promisify(fs.exists)(localIdFile) || !await promisify(fs.exists)(path.join(DIR_DATA_TEMP, "modloader.zip"))) {
-            console.warn(WARN(`[WARN] Writing in latest ModLoader version: ${latestId}`))
+            warn(`[WARN] Writing in latest ModLoader version: ${latestId}`)
             await promisify(fs.writeFile)(localIdFile, latestId.toString()).catch(err => {
-                console.error(ERROR("[ERROR] in judgeIsLatest() while writing in latestId!\n"), err);
+                error("[ERROR] in judgeIsLatest() while writing in latestId!\n");
                 return Promise.reject(err);
             });
             return false;
         }
 
         let localId = await promisify(fs.readFile)(localIdFile).catch(err => {
-            console.error(ERROR("[ERROR] in judgeIsLatest() while reading localId!\n"), err);
+            error("[ERROR] in judgeIsLatest() while reading localId!\n");
             return Promise.reject(err);
         });
         return localId.toString() === latestId.toString();
@@ -114,7 +114,7 @@ export class PreProcessModLoader {
     async downloadLatestBuiltModLoader() {
         let isLatest = await this.judgeIsLatest();
         if (isLatest) {
-            console.warn(WARN("[WARN] ModLoader has already been the latest!"))
+            warn("[WARN] ModLoader has already been the latest!")
             return
         }
 
@@ -126,7 +126,7 @@ export class PreProcessModLoader {
                 headers: GITHUB_HEADERS
             }
         ).catch(err => {
-            console.error(ERROR(`[ERROR] in downloadLatestBuiltModLoader() while requesting ${URL_MODLOADER_BUILD_RELEASE_API}!\n`), err);
+            error(`[ERROR] in downloadLatestBuiltModLoader() while requesting ${URL_MODLOADER_BUILD_RELEASE_API}!\n`);
             return Promise.reject(err);
         });
         let downloadUrl = response.data["assets"][0]["browser_download_url"];
@@ -146,21 +146,21 @@ export class PreProcessModLoader {
                 ))
                 writeStream.on('finish', async () => {
                     try {
-                        console.info(INFO("[INFO] Pre-commpiled ModLoader has been downloaded done!"))
+                        info("[INFO] Pre-compiled ModLoader has been downloaded done!")
                         await this.extractBuiltModLoader();
                         resolve();
                     } catch (err) {
-                        console.error(ERROR("[ERROR] in downloadLatestBuiltModLoader() while downloading!\n"), err);
+                        error("[ERROR] in downloadLatestBuiltModLoader() while downloading!\n");
                         reject(err);
                     }
                 });
                 writeStream.on('error', (err: any) => {
-                    console.error(ERROR("[ERROR] in downloadLatestBuiltModLoader() while writing in!\n"), err);
+                    error("[ERROR] in downloadLatestBuiltModLoader() while writing in!\n");
                     reject(err);
                 });
             });
         }).catch(err => {
-            console.error(ERROR(`[ERROR] in downloadLatestBuiltModLoader() while requesting ${downloadUrl}!\n`), err);
+            error(`[ERROR] in downloadLatestBuiltModLoader() while requesting ${downloadUrl}!\n`);
             return Promise.reject(err);
         });
     }
@@ -172,15 +172,15 @@ export class PreProcessModLoader {
         console.info("[INFO] Starting to extract pre-compiled ModLoader...")
         let zip = new JSZip();
         let binary = await promisify(fs.readFile)(path.join(DIR_DATA_TEMP, "modloader.zip")).catch(err => {
-            console.error(ERROR("[ERROR] in extractBuiltModLoader() while reading modloader.zip!\n"), err);
+            error("[ERROR] in extractBuiltModLoader() while reading modloader.zip!\n");
             return Promise.reject(err);
         });
         if (!binary) {
-            console.error(ERROR("[ERROR] in extractBuiltModLoader() cannot read modloader.zip!"));
+            error("[ERROR] in extractBuiltModLoader() cannot read modloader.zip!");
             throw new Error("[ERROR] in extractBuiltModLoader() cannot read modloader.zip!");
         }
         let modLoaderPackage = await zip.loadAsync(binary).catch(err => {
-            console.error(ERROR("[ERROR] in extractBuiltModLoader() while loading modloader.zip!\n"), err);
+            error("[ERROR] in extractBuiltModLoader() while loading modloader.zip!\n");
             return Promise.reject(err);
         });
         let zipFiles = modLoaderPackage.files;
@@ -189,21 +189,21 @@ export class PreProcessModLoader {
             let destination = path.join(DIR_MODLOADER_BUILT_ROOT, filepath);
             if (zipFiles[filepath].dir) {
                 return await promisify(fs.mkdir)(destination, {recursive: true}).catch(err => {
-                    console.error(ERROR(`[ERROR] in extractBuiltModLoader() while making dir of ${destination}!\n`), err);
+                    error(`[ERROR] in extractBuiltModLoader() while making dir of ${destination}!\n`);
                     return Promise.reject(err);
                 });
             } else {
                 let buffer = await zipFiles[filepath].async("nodebuffer").catch(err => {
-                    console.error(ERROR(`[ERROR] in extractBuiltModLoader() while writing in ${filepath}!\n`), err);
+                    error(`[ERROR] in extractBuiltModLoader() while writing in ${filepath}!\n`);
                     return Promise.reject(err);
                 });
                 await promisify(fs.writeFile)(destination, buffer).catch(err => {
-                    console.error(ERROR(`[ERROR] in extractBuiltModLoader() while writing in ${destination}!\n`), err);
+                    error(`[ERROR] in extractBuiltModLoader() while writing in ${destination}!\n`);
                     return Promise.reject(err);
                 });
             }
         }
-        console.info(INFO("[INFO] Pre-compiled ModLoader has been extracted done!"))
+        info("[INFO] Pre-compiled ModLoader has been extracted done!")
     }
 }
 
@@ -224,23 +224,23 @@ export class PreProcessModI18N {
                 headers: GITHUB_HEADERS
             }
         ).catch(err => {
-            console.error(ERROR(`[ERROR] in judgeIsLatest() while requesting ${URL_MODI18N_BUILD_RELEASE_API}!\n`), err);
+            error(`[ERROR] in judgeIsLatest() while requesting ${URL_MODI18N_BUILD_RELEASE_API}!\n`);
             return Promise.reject(err);
         });
 
-        console.info(INFO("[INFO] The latest I18N mod version has been fetched done!"))
+        info("[INFO] The latest I18N mod version has been fetched done!")
         let latestId = response.data["assets"][0]['id'];
         if (!await promisify(fs.exists)(localIdFile) || !await promisify(fs.exists)(path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip"))) {
-            console.warn(WARN(`[WARN] Writing in latest I18N mod version: ${latestId}`))
+            warn(`[WARN] Writing in latest I18N mod version: ${latestId}`)
             await promisify(fs.writeFile)(localIdFile, latestId.toString()).catch(err => {
-                console.error(ERROR("[ERROR] in judgeIsLatest() while writing in latestId!\n"), err);
+                error("[ERROR] in judgeIsLatest() while writing in latestId!\n");
                 return Promise.reject(err);
             });
             return false;
         }
 
         let localId = await promisify(fs.readFile)(localIdFile).catch(err => {
-            console.error(ERROR("[ERROR] in judgeIsLatest() while reading localId!\n"), err);
+            error("[ERROR] in judgeIsLatest() while reading localId!\n");
             return Promise.reject(err);
         });
         return localId.toString() === latestId.toString();
@@ -252,11 +252,11 @@ export class PreProcessModI18N {
     async downloadLatestModI18N() {
         let isLatest = await this.judgeIsLatest();
         let language = await osLocale().catch(err => {
-            console.error(ERROR("[ERROR] in downloadLatestModI18N() while getting locale!\n"), err);
+            error("[ERROR] in downloadLatestModI18N() while getting locale!\n");
             return Promise.reject(err);
         });
         if (isLatest || language !== "zh-CN") {
-            console.warn(WARN("[WARN] I18N mod is latest already!"))
+            warn("[WARN] I18N mod is latest already!")
             return
         }
 
@@ -268,7 +268,7 @@ export class PreProcessModI18N {
                 headers: GITHUB_HEADERS
             }
         ).catch(err => {
-            console.error(ERROR("[ERROR] in downloadLatestModI18N() while fetching url!\n"), err);
+            error("[ERROR] in downloadLatestModI18N() while fetching url!\n");
             return Promise.reject(err);
         });
         let downloadUrl = response.data["assets"][0]["browser_download_url"];
@@ -286,21 +286,21 @@ export class PreProcessModI18N {
                 ))
                 writeStream.on('finish', async () => {
                     try {
-                        console.info(INFO("[INFO] I18N mod downloaded done!"))
+                        info("[INFO] I18N mod downloaded done!")
                         await this.remoteLoadTest()
                         resolve();
                     } catch (err) {
-                        console.error(ERROR("[ERROR] in downloadLatestModI18N() while downloading!\n"), err);
+                        error("[ERROR] in downloadLatestModI18N() while downloading!\n");
                         reject(err);
                     }
                 });
                 writeStream.on('error', (err: any) => {
-                    console.error(ERROR("[ERROR] in downloadLatestModI18N() while writing!\n"), err);
+                    error("[ERROR] in downloadLatestModI18N() while writing!\n");
                     reject(err);
                 });
             });
         }).catch(err => {
-            console.error(ERROR("[ERROR] in downloadLatestModI18N() while requesting!\n"), err);
+            error("[ERROR] in downloadLatestModI18N() while requesting!\n");
             return Promise.reject(err);
         });
     }
@@ -315,7 +315,7 @@ export class PreProcessModI18N {
             path.join(DIR_DATA_TEMP, "i18n.zip"),
             path.join(DIR_MODLOADER_BUILT_MODS, "i18n.zip")
         ).catch(err => {
-            console.error(ERROR("[ERROR] in remoteLoadTest() while copying i18n.zip!\n"), err);
+            error("[ERROR] in remoteLoadTest() while copying i18n.zip!\n");
             return Promise.reject(err);
         });
 
@@ -323,7 +323,7 @@ export class PreProcessModI18N {
             return await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify(["mods/i18n.zip"]));
         });
         let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), 'utf-8').catch(err => {
-            console.error(ERROR("[ERROR] in remoteLoadTest() while reading modList!\n"), err);
+            error("[ERROR] in remoteLoadTest() while reading modList!\n");
             return Promise.reject(err);
         });
         let modListData = JSON.parse(modListDataBuffer);
@@ -332,10 +332,10 @@ export class PreProcessModI18N {
         }
 
         await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, "modList.json"), JSON.stringify(modListData)).catch(err => {
-            console.error(ERROR("[ERROR] in remoteLoadTest() while writing in modList!\n"), err);
+            error("[ERROR] in remoteLoadTest() while writing in modList!\n");
             return Promise.reject(err);
         });
-        console.info(INFO("[INFO] I18N remote loading has been processed done!"))
+        info("[INFO] I18N remote loading has been processed done!")
     }
 }
 
@@ -355,7 +355,7 @@ export class ProcessGamePassage {
         let outputDir = path.join(DIR_DATA_PASSAGE, name);
         await promisify(fs.access)(outputDir).catch(async () => {
             await promisify(fs.mkdir)(outputDir, {recursive: true}).catch(async (err) => {
-                console.error(ERROR(`[ERROR] in getAllPassages() while making dir of ${outputDir}!\n`), err);
+                error(`[ERROR] in getAllPassages() while making dir of ${outputDir}!\n`);
                 return Promise.reject(err);
             })
         })
@@ -368,7 +368,7 @@ export class ProcessGamePassage {
         let allTwineFiles = walk(dirPath, onlyTwineFileFilter);
         for (let file of allTwineFiles) {
             let content = await promisify(fs.readFile)(file).catch(err => {
-                console.error(ERROR(`[ERROR] in getAllPassages() while reading ${file}!\n`), err);
+                error(`[ERROR] in getAllPassages() while reading ${file}!\n`);
                 return Promise.reject(err);
             });
 
@@ -404,7 +404,7 @@ export class ProcessGamePassage {
             return Promise.reject(err)
         });
 
-        console.info(INFO(`[INFO] All passage info of ${name} has been fetched done！${allPassagesNames.length} passages in total.`))
+        info(`[INFO] All passage info of ${name} has been fetched done！${allPassagesNames.length} passages in total.`)
         return [allPassagesNames, allPassages]
     }
 
@@ -450,7 +450,7 @@ export class ProcessGamePassage {
         await promisify(fs.writeFile)(samePassagesFile, JSON.stringify(samePassages));
         await promisify(fs.writeFile)(samePassagesNamesFile, JSON.stringify(samePassagesNames));
 
-        console.info(INFO(`[INFO] All modified passages' info have been fetched done! ${samePassagesNames.length} in total.`));
+        info(`[INFO] All modified passages' info have been fetched done! ${samePassagesNames.length} in total.`);
         return {
             name: samePassagesNames,
             passage: samePassages
@@ -466,7 +466,7 @@ export class ProcessGamePassage {
         let outputDir = path.join(DIR_DATA_PASSAGE, name, "all_passages");
         await promisify(fs.access)(outputDir).catch(async () => {
             await promisify(fs.mkdir)(outputDir).catch(err => {
-                console.error(ERROR(`[ERROR] in writePassages() while making dir of ${outputDir}!\n`), err);
+                error(`[ERROR] in writePassages() while making dir of ${outputDir}!\n`);
                 return Promise.reject(err);
             })
         })
@@ -476,11 +476,11 @@ export class ProcessGamePassage {
             passage.passageName = passage.passageName.replace('/', '_SLASH_');
             let passageFile = path.join(outputDir, `${passage.passageName}.twee`);
             await promisify(fs.writeFile)(passageFile, passage.passageFull).catch(err => {
-                console.error(ERROR(`[ERROR] in writePassages() while writing in ${passageFile}!\n`), err);
+                error(`[ERROR] in writePassages() while writing in ${passageFile}!\n`);
                 return Promise.reject(err)
             });
         }
-        console.info(INFO("[INFO] All passages' info have been written done!"))
+        info("[INFO] All passages' info have been written done!")
     }
 
     /**
@@ -517,7 +517,7 @@ export class ProcessGamePassage {
         for (const targetDir of diffModDirs) {
             await promisify(fs.access)(targetDir).catch(async () => {
                 await promisify(fs.mkdir)(targetDir, {recursive: true}).catch(async (err) => {
-                    console.error(ERROR(`[ERROR] in preProcessForDiffGeneration() while making dir of ${targetDir}!\n`), err);
+                    error(`[ERROR] in preProcessForDiffGeneration() while making dir of ${targetDir}!\n`);
                     return Promise.reject(err);
                 })
             })
@@ -527,7 +527,7 @@ export class ProcessGamePassage {
             bootJsonFilePathSource,
             bootJsonFilePath
         ).catch(err => {
-            console.error(ERROR(`[ERROR] in preProcessForDiffGeneration() while copying boot file of ${bootJsonFilePathSource}!\n`), err);
+            error(`[ERROR] in preProcessForDiffGeneration() while copying boot file of ${bootJsonFilePathSource}!\n`);
             return Promise.reject(err);
         });
 
@@ -536,7 +536,7 @@ export class ProcessGamePassage {
                 path.join(DIR_DATA_PASSAGE_SOURCE, "all_passages", `${passageName}.twee`),
                 path.join(diffModDirs[1], `${passageName}.twee`)
             ).catch(err => {
-                console.error(ERROR(`[ERROR] in preProcessForDiffGeneration() while copying twine file of ${passageName}!\n`), err);
+                error(`[ERROR] in preProcessForDiffGeneration() while copying twine file of ${passageName}!\n`);
                 return Promise.reject(err);
             });
         }
@@ -545,11 +545,11 @@ export class ProcessGamePassage {
             const content = passageInfo.passageFull;
             const filePath = path.join(diffModDirs[0], `${passageInfo.passageName}.twee`);
             await promisify(fs.writeFile)(filePath, content).catch(err => {
-                console.error(ERROR(`[ERROR] in preProcessForDiffGeneration() while writing in ${filePath}!\n`), err);
+                error(`[ERROR] in preProcessForDiffGeneration() while writing in ${filePath}!\n`);
                 return Promise.reject(err);
             });
         }
-        console.info(INFO("[INFO] Diff generation has been processed done!"))
+        info("[INFO] Diff generation has been processed done!")
     }
 
     /**
@@ -577,7 +577,7 @@ export class ProcessGamePassage {
         let [successCount, failureCount] = [0, 0];
         for (const [passageIdx, samePassageName] of samePassagesNames.entries()) {
             const diffFileContent = await promisify(fs.readFile)(path.join(diffFileDir, `${samePassageName}.twee.diff`), 'utf-8').catch(err => {
-                console.error(ERROR(`[ERROR] in diff2BootJson() while reading ${samePassageName}.twee.diff!\n`), err);
+                error(`[ERROR] in diff2BootJson() while reading ${samePassageName}.twee.diff!\n`);
                 return Promise.reject(err);
             });
             const diffDataList: Diff[] = JSON.parse(diffFileContent);
@@ -661,7 +661,7 @@ export class ProcessGamePassage {
             }
         }
 
-        console.info(INFO(`[INFO] tweeReplacer has been auto generated done! succeeded: ${successCount}, failed: ${failureCount}`))
+        info(`[INFO] tweeReplacer has been auto generated done! succeeded: ${successCount}, failed: ${failureCount}`)
         return {
             modName: "TweeReplacer",
             addonName: "TweeReplacerAddon",
@@ -700,16 +700,16 @@ export class ProcessGamePackage {
     async fetchModStructure() {
         console.info(`[INFO] Starting to fetch file structures of mod ${this.modDir} ...`)
         let buffer = await promisify(fs.readFile)(path.join(DIR_MODS, this.modDir, "boot.json")).catch(err => {
-            console.error(ERROR(`[ERROR] in fetchModStructure() while reading boot of ${this.modDir}!\n`), err);
+            error(`[ERROR] in fetchModStructure() while reading boot of ${this.modDir}!\n`);
             return Promise.reject(err);
         });
         if (!buffer) {
-            console.error(ERROR(`[ERROR] in fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`));
+            error(`[ERROR] in fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
             throw new Error(`[ERROR] in fetchModStructure() cannot read boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
         }
         this.bootData = JSON.parse(buffer.toString());
         if (!this.bootData) {
-            console.error(ERROR(`[ERROR] in fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`));
+            error(`[ERROR] in fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
             throw new Error(`[ERROR] in fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
         }
 
@@ -752,7 +752,7 @@ export class ProcessGamePackage {
         this.modFilesAddition = this.modFilesAddition.filter((item) => {
             return item !== "boot.json"
         });
-        console.info(INFO(`[INFO] Structure of ${this.modDir} has been fetched done!`))
+        info(`[INFO] Structure of ${this.modDir} has been fetched done!`)
     }
 
     /**
@@ -763,10 +763,10 @@ export class ProcessGamePackage {
         await this.writeBootJsonFileLists();
         // await this.writeBootJsonAddons();
         // await promisify(fs.writeFile)(path.join(DIR_RESULTS, this.modDir, "boot.json"), JSON.stringify(this.bootData)).catch(err => {
-        //     console.error(ERROR(`[ERROR] in writeBootJson() while writing in boot of ${this.modDir}!\n`), err);
+        //     error(`[ERROR] in writeBootJson() while writing in boot of ${this.modDir}!\n`);
         //     return Promise.reject(err);
         // });
-        console.info(INFO(`[INFO] boot.json of ${this.modDir} has been written done!`))
+        info(`[INFO] boot.json of ${this.modDir} has been written done!`)
     }
 
     /**
@@ -774,7 +774,7 @@ export class ProcessGamePackage {
      */
     async writeBootJsonFileLists() {
         if (!this.bootData) {
-            console.error(ERROR(`[ERROR] in writeBootJsonFileLists() cannot read bootData`));
+            error(`[ERROR] in writeBootJsonFileLists() cannot read bootData`);
             throw new Error(`[ERROR] in writeBootJsonFileLists() read find bootData`);
         }
         // FileLists
@@ -805,7 +805,7 @@ export class ProcessGamePackage {
     async writeBootJsonTweeReplacer(addonTweeReplacer: AddonTweeReplacer) {
         // twee 文本替换
         if (!this.bootData) {
-            console.error(ERROR(`[ERROR] in writeBootJsonTweeReplacer() cannot read bootData`));
+            error(`[ERROR] in writeBootJsonTweeReplacer() cannot read bootData`);
             throw new Error(`[ERROR] in writeBootJsonTweeReplacer() read find bootData`);
         }
 
@@ -857,7 +857,7 @@ export class ProcessGamePackage {
      */
     async packageMod() {
         if (!this.bootData) {
-            console.error(ERROR(`[ERROR] in packageMod() cannot read bootData`));
+            error(`[ERROR] in packageMod() cannot read bootData`);
             throw new Error(`[ERROR] in packageMod() read find bootData`);
         }
         console.info(`[INFO] Starting to pack ${this.modDir} ...`)
@@ -872,7 +872,7 @@ export class ProcessGamePackage {
             for (let filepath of fileListRequired) {
                 let absolutePath = path.join(DIR_MODS, this.modDir, filepath);
                 let content = await promisify(fs.readFile)(absolutePath).catch(err => {
-                    console.error(ERROR(`[ERROR] in packageMod() while reading required ${absolutePath}!\n`), err);
+                    error(`[ERROR] in packageMod() while reading required ${absolutePath}!\n`);
                     return Promise.reject(err);
                 });
                 zip.file(filepath, content);
@@ -891,7 +891,7 @@ export class ProcessGamePackage {
             for (let filepath of fileListOptional) {
                 let absolutePath = path.join(DIR_MODS, this.modDir, filepath);
                 let content = await promisify(fs.readFile)(absolutePath).catch(err => {
-                    console.error(ERROR(`[ERROR] in packageMod() while reading optional ${absolutePath}!\n`), err);
+                    error(`[ERROR] in packageMod() while reading optional ${absolutePath}!\n`);
                     return Promise.reject(err);
                 });
                 zip.file(filepath, content);
@@ -904,14 +904,14 @@ export class ProcessGamePackage {
             compression: "DEFLATE",
             compressionOptions: {level: 9},
         }).catch(err => {
-            console.error(ERROR(`[ERROR] in packageMod() while zipping!\n`), err);
+            error(`[ERROR] in packageMod() while zipping!\n`);
             return Promise.reject(err);
         });
         await promisify(fs.writeFile)(path.join(DIR_RESULTS, `${this.bootData.name}.mod.zip`), zipBase64, {encoding: 'utf-8'}).catch(err => {
-            console.error(ERROR(`[ERROR] in packageMod() while writing in ${this.modDir}.mod.zip!\n`), err);
+            error(`[ERROR] in packageMod() while writing in ${this.modDir}.mod.zip!\n`);
             return Promise.reject(err);
         });
-        console.info(INFO(`[INFO] ${this.modDir} has been packed done!`))
+        info(`[INFO] ${this.modDir} has been packed done!`)
     }
 
     /**
@@ -919,7 +919,7 @@ export class ProcessGamePackage {
      */
     async remoteLoadTest() {
         if (!this.bootData) {
-            console.error(ERROR(`[ERROR] in remoteLoadTest() cannot read bootData`));
+            error(`[ERROR] in remoteLoadTest() cannot read bootData`);
             throw new Error(`[ERROR] in remoteLoadTest() read find bootData`);
         }
 
@@ -928,7 +928,7 @@ export class ProcessGamePackage {
             path.join(DIR_RESULTS, `${this.bootData.name}.mod.zip`),
             path.join(DIR_MODLOADER_BUILT_MODS, `${this.bootData.name}.mod.zip`)
         ).catch(err => {
-            console.error(ERROR(`[ERROR] in remoteLoadTest() while copying ${this.modDir}.mod.zip!\n`), err);
+            error(`[ERROR] in remoteLoadTest() while copying ${this.modDir}.mod.zip!\n`);
             return Promise.reject(err);
         });
 
@@ -936,12 +936,12 @@ export class ProcessGamePackage {
             return await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify([
                 `mods/${this.bootData!.name}.mod.zip`
             ])).catch(err => {
-                console.error(ERROR(`[ERROR] in remoteLoadTest() while writing in modList!\n`), err);
+                error(`[ERROR] in remoteLoadTest() while writing in modList!\n`);
                 return Promise.reject(err);
             });
         });
         let modListDataBuffer = await promisify(fs.readFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), 'utf-8').catch(err => {
-            console.error(ERROR(`[ERROR] in remoteLoadTest() while reading modList!\n`), err);
+            error(`[ERROR] in remoteLoadTest() while reading modList!\n`);
             return Promise.reject(err);
         });
         let modListData = JSON.parse(modListDataBuffer);
@@ -950,10 +950,10 @@ export class ProcessGamePackage {
         }
 
         await promisify(fs.writeFile)(path.join(DIR_MODLOADER_BUILT_ROOT, `modList.json`), JSON.stringify(modListData)).catch(err => {
-            console.error(ERROR(`[ERROR] in remoteLoadTest() while writing in modList!\n`), err);
+            error(`[ERROR] in remoteLoadTest() while writing in modList!\n`);
             return Promise.reject(err);
         });
-        console.info(INFO(`[INFO] Remote loading of ${this.modDir} has been processed done!`))
+        info(`[INFO] Remote loading of ${this.modDir} has been processed done!`)
     }
 }
 
