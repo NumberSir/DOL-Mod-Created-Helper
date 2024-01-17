@@ -374,7 +374,8 @@ export class ProcessGamePassage {
                 return Promise.reject(err);
             });
 
-            let contentSlice = content.toString().split(":: ");
+            let contentString = `\n${content.toString().trim()}`
+            let contentSlice = contentString.split("\n:: ");
             contentSlice = contentSlice.filter((_, idx) => idx % 2 !== 0);
             // slice 中的偶数元素包含标题
 
