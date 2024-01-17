@@ -12,3 +12,7 @@ export function warn(...text: string[]) {
 export function info(...text: string[]) {
     return console.error(chalk.bold.white(...text));
 }
+
+export function debug(...text: string[]) {
+    return console.debug(chalk.bold.blue(...text));
+}

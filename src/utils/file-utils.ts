@@ -15,7 +15,9 @@ export function walk(dirPath: string, filterFunc: ((filepath: string) => boolean
     let result: string[] = [];
     times++;
 
-    if (times === 0) root = dirPath;
+    if (times === 0) {
+      root = dirPath;
+    }
 
     if (fs.existsSync(dirPath)) {
         const files = fs.readdirSync(dirPath);
@@ -46,10 +48,9 @@ export function walk(dirPath: string, filterFunc: ((filepath: string) => boolean
 function onlySpecificSuffixFilesFilter(filepath: string, suffix: string | string[]): boolean {
     if (typeof suffix === "string") {
         return filepath.endsWith(suffix);
-    } else if (suffix instanceof Array) {
+    } else {
         return suffix.some((suf) => filepath.endsWith(suf));
     }
-    throw new Error("suffix must be string or string[]");
 }
 
 /**
@@ -92,10 +93,9 @@ export function onlyImageFileFilter(filepath: string) {
 function excludeSpecificSuffixFilesFilter(filepath: string, suffix: string | string[]): boolean {
     if (typeof suffix === "string") {
         return !filepath.endsWith(suffix);
-    } else if (suffix instanceof Array) {
+    } else {
         return suffix.every((suf) => !filepath.endsWith(suf));
     }
-    throw new Error("suffix must be string or string[]");
 }
 
 /**

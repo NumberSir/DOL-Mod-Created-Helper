@@ -133,7 +133,7 @@ export class PreProcessModLoader {
 
         let language = await osLocale();
         if (language === "zh-CN") {
-          downloadUrl = `${URL_GITHUB_PROXY}/${downloadUrl}`;
+            downloadUrl = `${URL_GITHUB_PROXY}/${downloadUrl}`;
         }  // 镜像
 
         await axios({
@@ -345,7 +345,8 @@ export class PreProcessModI18N {
  * 处理游戏段落相关，方便比对差异与自动填充
  */
 export class ProcessGamePassage {
-    constructor(public modDir: string) {}
+    constructor(public modDir: string) {
+    }
 
     /**
      * 获取所有段落和段落名
@@ -614,10 +615,11 @@ export class ProcessGamePassage {
                                 if (findString === "") {
                                     [findString, replace] = insertFindStringBothward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 }
-                        } break;
+                        }
+                        break;
                     case DiffOperator.DELETE:
                         // 只出现了一次，那直接找这个然后删掉就行
-                        if (passageInfo.passageBody.split(diffData.text).length-1 === 1) {
+                        if (passageInfo.passageBody.split(diffData.text).length - 1 === 1) {
                             findString = diffData.text;
                             break;
                         }
@@ -642,7 +644,8 @@ export class ProcessGamePassage {
                                 if (findString === "") {
                                     [findString, replace] = deleteFindStringBothward(diffIdx, diffData, diffDataList, passageInfo, findString, replace);
                                 }
-                        } break;
+                        }
+                        break;
                 }
 
                 if (findString) {
@@ -716,15 +719,18 @@ export class ProcessGamePackage {
             throw new Error(`[ERROR] in fetchModStructure() cannot parse boot.json of ${path.join(DIR_MODS, this.modDir, "boot.json")}`);
         }
 
+        // .twee 文件
         this.sourceFilesTwine = walk(path.join(DIR_GAME_REPO_ROOT), onlyTwineFileFilter, true);
         this.modFilesTwineAll = walk(path.join(DIR_MODS, this.modDir), onlyTwineFileFilter, true);
         this.modFilesTwineNew = this.modFilesTwineAll.filter((file) => {
             return !(this.sourceFilesTwine!.indexOf(file) > -1);
         });  // 过滤掉一致的
 
+        // .js 文件
         this.sourceFilesScript = walk(path.join(DIR_GAME_REPO_ROOT), onlyJSFileFilter, true);
         this.modFilesScriptSpecial = [];
 
+        // 特殊的 .js 文件
         if (has(this.bootData, "scriptFileList_preload")) {
             this.modFilesScriptSpecial = this.bootData.scriptFileList_preload;
         } else if (has(this.bootData, 'scriptFileList_earlyload')) {
@@ -744,13 +750,17 @@ export class ProcessGamePackage {
             return !(this.sourceFilesScript!.indexOf(file) > -1);
         });  // 过滤掉一致的
 
+        // .css 文件
         this.sourceFilesStyle = walk(path.join(DIR_GAME_REPO_ROOT), onlyStyleFileFilter, true);
         this.modFilesStyleAll = walk(path.join(DIR_MODS, this.modDir), onlyStyleFileFilter, true);
         this.modFilesStyleNew = this.modFilesStyleAll.filter((file) => {
             return !(this.sourceFilesStyle!.indexOf(file) > -1);
         });  // 过滤掉一致的
 
+        // 图片文件
         this.modFilesImg = walk(path.join(DIR_MODS, this.modDir), onlyImageFileFilter, true);
+
+        // 额外文件
         this.modFilesAddition = walk(path.join(DIR_MODS, this.modDir), onlyExtraFileFilter, true);
         this.modFilesAddition = this.modFilesAddition.filter((item) => {
             return item !== "boot.json"
@@ -781,20 +791,20 @@ export class ProcessGamePackage {
             throw new Error(`[ERROR] in writeBootJsonFileLists() read find bootData`);
         }
         // FileLists
-        if (!this.bootData.tweeFileList) {
-          this.bootData.tweeFileList = this.modFilesTwineNew;
+        if (!this.bootData.tweeFileList || this.bootData.tweeFileList.length === 0) {
+            this.bootData.tweeFileList = this.modFilesTwineNew;
         }
-        if (!this.bootData.scriptFileList) {
-          this.bootData.scriptFileList = this.modFilesScriptNormal;
+        if (!this.bootData.scriptFileList || this.bootData.scriptFileList.length === 0) {
+            this.bootData.scriptFileList = this.modFilesScriptNormal;
         }
-        if (!this.bootData.styleFileList) {
-          this.bootData.styleFileList = this.modFilesStyleNew;
+        if (!this.bootData.styleFileList || this.bootData.styleFileList.length === 0) {
+            this.bootData.styleFileList = this.modFilesStyleNew;
         }
-        if (!this.bootData.imgFileList) {
-          this.bootData.imgFileList = this.modFilesImg;
+        if (!this.bootData.imgFileList || this.bootData.imgFileList.length === 0) {
+            this.bootData.imgFileList = this.modFilesImg;
         }
-        if (!this.bootData.additionFile) {
-          this.bootData.additionFile = this.modFilesAddition;
+        if (!this.bootData.additionFile || this.bootData.additionFile.length === 0) {
+            this.bootData.additionFile = this.modFilesAddition;
         }
         // console.log(`\t${this.modDir} 模组文件列表已填写完毕！`)
         return this.bootData;
@@ -824,7 +834,7 @@ export class ProcessGamePackage {
 
         // 没有就不要填了
         if (!addonTweeReplacer) {
-          return this.bootData;
+            return this.bootData;
         }
 
         let hasAddonFlag = false;
@@ -837,7 +847,7 @@ export class ProcessGamePackage {
             }
             // 别把人家自己填的覆盖了
             if (hasAddonFlag) {
-              return this.bootData;
+                return this.bootData;
             }
         } else {
             this.bootData.addonPlugin = [];
@@ -854,7 +864,7 @@ export class ProcessGamePackage {
             }
             // 别把人家自己填的覆盖了
             if (hasDependenceFlag) {
-              return this.bootData;
+                return this.bootData;
             }
         } else {
             this.bootData.dependenceInfo = [];
