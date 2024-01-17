@@ -132,7 +132,9 @@ export class PreProcessModLoader {
         let downloadUrl = response.data["assets"][0]["browser_download_url"];
 
         let language = await osLocale();
-        if (language === "zh-CN") downloadUrl = `${URL_GITHUB_PROXY}/${downloadUrl}`;  // 镜像
+        if (language === "zh-CN") {
+          downloadUrl = `${URL_GITHUB_PROXY}/${downloadUrl}`;
+        }  // 镜像
 
         await axios({
             method: "get",
@@ -778,11 +780,21 @@ export class ProcessGamePackage {
             throw new Error(`[ERROR] in writeBootJsonFileLists() read find bootData`);
         }
         // FileLists
-        if (!this.bootData.tweeFileList) this.bootData.tweeFileList = this.modFilesTwineNew;
-        if (!this.bootData.scriptFileList) this.bootData.scriptFileList = this.modFilesScriptNormal;
-        if (!this.bootData.styleFileList) this.bootData.styleFileList = this.modFilesStyleNew;
-        if (!this.bootData.imgFileList) this.bootData.imgFileList = this.modFilesImg;
-        if (!this.bootData.additionFile) this.bootData.additionFile = this.modFilesAddition;
+        if (!this.bootData.tweeFileList) {
+          this.bootData.tweeFileList = this.modFilesTwineNew;
+        }
+        if (!this.bootData.scriptFileList) {
+          this.bootData.scriptFileList = this.modFilesScriptNormal;
+        }
+        if (!this.bootData.styleFileList) {
+          this.bootData.styleFileList = this.modFilesStyleNew;
+        }
+        if (!this.bootData.imgFileList) {
+          this.bootData.imgFileList = this.modFilesImg;
+        }
+        if (!this.bootData.additionFile) {
+          this.bootData.additionFile = this.modFilesAddition;
+        }
         // console.log(`\t${this.modDir} 模组文件列表已填写完毕！`)
         return this.bootData;
     }
@@ -810,7 +822,9 @@ export class ProcessGamePackage {
         }
 
         // 没有就不要填了
-        if (!addonTweeReplacer) return this.bootData;
+        if (!addonTweeReplacer) {
+          return this.bootData;
+        }
 
         let hasAddonFlag = false;
         if (this.bootData.addonPlugin) {
@@ -821,7 +835,9 @@ export class ProcessGamePackage {
                 }
             }
             // 别把人家自己填的覆盖了
-            if (hasAddonFlag) return this.bootData;
+            if (hasAddonFlag) {
+              return this.bootData;
+            }
         } else {
             this.bootData.addonPlugin = [];
         }
@@ -836,7 +852,9 @@ export class ProcessGamePackage {
                 }
             }
             // 别把人家自己填的覆盖了
-            if (hasDependenceFlag) return this.bootData;
+            if (hasDependenceFlag) {
+              return this.bootData;
+            }
         } else {
             this.bootData.dependenceInfo = [];
         }
