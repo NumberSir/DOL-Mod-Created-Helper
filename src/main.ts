@@ -8,7 +8,7 @@ import child_process from "child_process";
 import fs from 'fs';
 import {DIR_MODS} from "./consts";
 import {AddonTweeReplacer} from "./builtins/twee-replacer";
-import {info, warn} from "./log";
+import {debug, info, warn} from "./log";
 
 
 async function processModLoader() {
@@ -55,6 +55,7 @@ function runLocalServer() {
 }
 
 (async () => {
+    const timeStart = new Date().getTime();
     const modLoader = new PreProcessModLoader();
     await initDirs();
     await Promise.all([
@@ -63,4 +64,6 @@ function runLocalServer() {
         processMod(),
     // ]).then(() => runLocalServer());
     ]);
+    const timeEnd = new Date().getTime();
+    debug(`Time costs: ${(timeEnd - timeStart)/1000}s`)
 })();
