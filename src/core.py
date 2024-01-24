@@ -182,8 +182,8 @@ class GameMod:
         addition_flag = False
 
         for name in os.listdir(DIR_MODS_ROOT):
-            if not (DIR_RESULTS_ROOT / name).parent.exists():
-                os.makedirs((DIR_RESULTS_ROOT / name).parent, exist_ok=True)
+            if not (DIR_RESULTS_ROOT / name).exists():
+                os.makedirs((DIR_RESULTS_ROOT / name), exist_ok=True)
 
             if self._boot_json[name].get("additionFile"):
                 addition_flag = True
