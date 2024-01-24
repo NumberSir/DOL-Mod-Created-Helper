@@ -180,7 +180,11 @@ class GameMod:
         """From 'mods' to 'results'"""
         logger.info(locale(Langs.ProcessResultsStartInfo))
         addition_flag = False
+
         for name in os.listdir(DIR_MODS_ROOT):
+            if not (DIR_RESULTS_ROOT / name).parent.exists():
+                os.makedirs((DIR_RESULTS_ROOT / name).parent, exist_ok=True)
+
             if self._boot_json[name].get("additionFile"):
                 addition_flag = True
             for root, dir_list, file_list in os.walk(DIR_MODS_ROOT / name):
